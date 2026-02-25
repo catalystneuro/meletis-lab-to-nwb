@@ -4,6 +4,8 @@ import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
+from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskNWBConverter
@@ -67,6 +69,11 @@ def session_to_nwb(
 
     converter = ArrowMazeChoiceTaskNWBConverter(source_data=source_data, verbose=verbose)
 
+    # Set timestamps for DLC from the video file — without a config file, the interface
+    # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
+    timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
+    converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
+
     metadata = converter.get_metadata()
 
     session_date = datetime.datetime.strptime(video_file_path.stem, "tmaze_%Y-%m-%dT%H_%M_%S").replace(
@@ -82,6 +89,13 @@ def session_to_nwb(
 
     metadata["Subject"]["subject_id"] = subject_id
     metadata["Subject"]["genotype"] = line
+
+    # Update camera device name
+    video_key = f"Video {video_file_path.stem}"
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = "Oryx 10GigE Camera"
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"][
+        "description"
+    ] = "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, positioned beneath the arena."
 
     converter.run_conversion(
         metadata=metadata,
