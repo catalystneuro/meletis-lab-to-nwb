@@ -1,0 +1,35 @@
+NWBFile:
+  keywords:
+    - optogenetics
+    - self-stimulation
+    - dLight
+    - dopamine
+    - fiber photometry
+    - nosepoke
+    - SNc
+    - Anxa1-TetTox
+  related_publications:
+    - doi:10.1101/2024.12.22.629963
+  experiment_description: |
+    Optogenetic self-stimulation with dLight fiber photometry. Water-restricted mice freely
+    nosepoked to trigger bilateral SNc laser stimulation (473 nm, 40 Hz). Each nosepoke
+    delivered a 1-second train of laser pulses followed by a 3-second inter-stimulation
+    interval. Fiber photometry (470 nm excitation, dLight1.3b indicator) recorded striatal
+    dopamine dynamics during the self-stimulation task. Two recording sites were used: dorsal
+    striatum (dStr) and ventral striatum (vStr). Multiple laser intensities (0.1, 0.2, 0.5,
+    1, 2 mW) were tested across sessions.
+  session_description: |
+    Optogenetic self-stimulation session. A water-restricted mouse freely nosepoked to trigger
+    bilateral SNc laser stimulation while striatal dopamine was recorded via dLight fiber
+    photometry.
+  institution: Karolinska Institutet
+  lab: Meletis
+  experimenter:
+    - Mantas, Ioannis
+    - Contestabile, Alessandro
+    - Skara, Vasiliki
+Subject:
+  species: Mus musculus
+  sex: U
+  strain: C57BL/6N
+  description: Mouse on C57BL/6N background, aged 2-6 months at time of experiment.
