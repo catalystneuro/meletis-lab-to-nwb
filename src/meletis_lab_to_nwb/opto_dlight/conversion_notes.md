@@ -19,12 +19,14 @@ opto+dLight/
 
 ### Optogenetic Stimulation (TTL)
 - Format: CSV, no header, 3 columns: ISO timestamp (+01:00 timezone), sample index, boolean
-- Sampling rate: ~30 Hz
+- Sampling rate: ~143 Hz (measured from data; comment in code saying ~30 Hz is incorrect)
 - Duration: ~1100-1260s per session
+- Each True value is a brief 1-sample pulse (~7 ms); consecutive True samples separated by < 1s are grouped into one burst
 - The first burst of True values = fiber photometry system activation (excluded)
-- Subsequent bursts = nosepoke-triggered laser stimulation episodes (~1s each)
+- Subsequent bursts = nosepoke-triggered laser stimulation episodes (~1-6s per burst depending on nosepoke clustering)
 - Protocol: 40 Hz laser, 1s stimulation + 3s inter-stimulation interval
 - NeuroConv interface: Custom `OptogeneticsTTLInterface` → `OptogeneticSeries` + `TimeIntervals`
+- Clock synchronization: FP clock and TTL clock are synchronized to within 7 ms (verified by matching FP start at ~8.117s with first TTL True at ~8.124s)
 
 ### Fiber Photometry (dLight)
 - Format: CSV, 2 columns: `Time(s)` and motion-corrected signal (sig - ref)
@@ -51,6 +53,23 @@ opto+dLight/
 - Laser power stored as the session's intensity when TTL is True, 0 when False
 - dLight1.3b used as indicator label (dopamine sensor)
 - Sex set to "U" (not tracked per subject in the dataset)
+
+## Open Questions / Data to Request
+
+- **Confirm first TTL burst interpretation**: The current code excludes the first burst of TTL
+  True values (~8.124s → ~14.275s, ~6s duration) on the assumption that it corresponds to
+  fiber photometry system activation rather than real optogenetic stimulation. This was inferred
+  from data inspection only (timing coincides with FP warm-up at ~8.117s; `start.fp` column in
+  details.csv equals the first TTL True sample index; burst is ~6s vs ~1s for real stim episodes)
+  — it is **not stated in the manuscript**. Ask the lab to confirm whether this interpretation is
+  correct. If wrong, the first real stimulation episode is being silently discarded for every session.
+
+- **Raw nosepoke events from Bonsai**: The current dataset only contains the laser TTL trace
+  (on/off state at ~143 Hz). Successful nosepokes can be inferred from `stimulation_episodes`
+  start times, but raw port-entry events (including pokes during the 3s ISI lockout that
+  did NOT trigger stimulation) are not available. Ask the lab whether Bonsai saved a separate
+  nosepoke event log (e.g., `*_nosepoke.csv`, `*_port.csv`, or another Bonsai output stream)
+  and include it as a `BehavioralEvents` or `TimeIntervals` table in the NWB file if available.
 
 ## Known Issues
 - `start.fp` column in details.csv matches the sample index of the first TTL True value
