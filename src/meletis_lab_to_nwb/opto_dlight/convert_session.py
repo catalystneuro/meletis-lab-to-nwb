@@ -87,9 +87,8 @@ def session_to_nwb(
     metadata["Subject"]["subject_id"] = subject_id
     metadata["Subject"]["genotype"] = line
 
-    # Pass recording location to fiber photometry interface via metadata
-    location = "dorsal striatum" if group == "dStr" else "ventral striatum"
-    metadata["FiberPhotometry"] = dict(location=location, indicator_label="dLight1.3b")
+    # Override per-session recording location (Allen Atlas names)
+    metadata["FiberPhotometry"]["location"] = "Caudoputamen" if group == "dStr" else "Nucleus accumbens"
 
     converter.run_conversion(
         metadata=metadata,
