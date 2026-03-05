@@ -15,8 +15,10 @@ classifiers = [
 ]
 
 dependencies = [
-  "neuroconv==0.9.1",
-  "nwbinspector",
+    "neuroconv==0.9.1",
+    "nwbinspector",
+    "ndx-optogenetics==0.4.0",
+    "ndx-fiber-photometry==0.2.3",
 ]
 
 [project.urls]
