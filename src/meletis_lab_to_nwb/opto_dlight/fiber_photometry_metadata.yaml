@@ -1,0 +1,80 @@
+FiberPhotometry:
+  # Per-session location is overridden in convert_session.py (Allen Atlas names)
+  location: Striatum
+  indicator_label: dLight1.3b
+  excitation_wavelength_in_nm: 470.0
+  emission_wavelength_in_nm: 525.0
+
+  ExcitationSourceModel_470nm:
+    # 470 nm LED for signal channel. Power 20-30 µW (Mantas et al. 2026, line 917-918).
+    # Doric system (ref 101); no model number reported in manuscript.
+    name: doric_470nm_led_model
+    manufacturer: Doric
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    # wavelength_range_in_nm is computed from excitation_wavelength_in_nm in code
+    # (avoids dict_deep_update deduplication of equal values in a list)
+
+  ExcitationSourceModel_405nm:
+    # 405 nm LED for isosbestic reference channel. Power 15-25 µW (Mantas et al. 2026, line 918-919).
+    # Doric system (ref 101); no model number reported in manuscript.
+    name: doric_405nm_led_model
+    manufacturer: Doric
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    wavelength_in_nm: 405.0
+    # wavelength_range_in_nm is computed from wavelength_in_nm in code
+
+  OpticalFiberModel:
+    # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric.
+    # Specs from Mantas et al. (2026), Implant placement, lines 652-654.
+    # No model number reported in manuscript.
+    name: doric_400um_cannula_model
+    manufacturer: Doric
+    numerical_aperture: 0.22
+    core_diameter_in_um: 400.0
+    ferrule_name: "ceramic ferrule"
+
+  ExcitationSourceSignal:
+    # 470 nm signal channel LED instance, linked to ExcitationSourceModel_470nm via model=.
+    name: excitation_source_signal
+    description: >-
+      470 nm Doric LED for dLight1.3b excitation (signal channel). Power 20-30 µW.
+      Delivered through DoricStudio V5 software.
+
+  ExcitationSourceIsosbestic:
+    # 405 nm isosbestic reference LED instance, linked to ExcitationSourceModel_405nm via model=.
+    name: excitation_source_isosbestic
+    description: >-
+      405 nm Doric LED for dLight1.3b isosbestic reference channel. Power 15-25 µW.
+      Delivered through DoricStudio V5 software.
+
+  OpticalFiber:
+    # Optical fiber instance for photometry recording, linked to OpticalFiberModel via model=.
+    name: optical_fiber
+    description: >-
+      Doric 400 µm ceramic ferrule fiber optic cannula for striatal dLight1.3b
+      fiber photometry recording.
+
+  Photodetector:
+    name: photodetector
+    description: "Photodetector for striatal dLight1.3b fiber photometry."
+
+  ProcessingModule:
+    name: ophys
+    description: >-
+      Processed optical physiology data. Contains motion-corrected dF/F fluorescence
+      signals from striatal dLight1.3b fiber photometry recordings (470 nm signal minus
+      405 nm isosbestic reference).
+
+  DfOverFFiberPhotometryResponseSeries:
+    name: DfOverFFiberPhotometryResponseSeries
+
+  Indicator:
+    # dLight1.3b: genetically encoded dopamine sensor (Bhatt et al., 2024).
+    # Expressed in striatal neurons via AAV (Addgene). Excitation 470 nm, emission 525 nm.
+    manufacturer: Addgene
+    description: >-
+      Genetically encoded dopamine indicator dLight1.3b (Bhatt et al., 2024). Expressed via
+      AAV in striatal neurons for recording dopamine dynamics during optogenetic
+      self-stimulation.
