@@ -64,8 +64,7 @@ FiberPhotometry:
     name: ophys
     description: >-
       Processed optical physiology data. Contains motion-corrected dF/F fluorescence
-      signals from striatal dLight1.3b fiber photometry recordings (470 nm signal minus
-      405 nm isosbestic reference).
+      signals from striatal dLight1.3b fiber photometry recordings.
 
   DfOverFFiberPhotometryResponseSeries:
     name: DfOverFFiberPhotometryResponseSeries
@@ -78,3 +77,15 @@ FiberPhotometry:
       Genetically encoded dopamine indicator dLight1.3b (Bhatt et al., 2024). Expressed via
       AAV in striatal neurons for recording dopamine dynamics during optogenetic
       self-stimulation.
+
+  RawSignalFiberPhotometryResponseSeries:
+    name: FiberPhotometryResponseSeries
+    description: >-
+      Raw 470 nm fluorescence signal from dLight1.3b fiber photometry acquisition
+      (DoricStudio V5).
+
+  RawReferenceFiberPhotometryResponseSeries:
+    name: FiberPhotometryResponseSeriesIsosbestic
+    description: >-
+      Raw 405 nm isosbestic reference fluorescence from dLight1.3b fiber photometry
+      acquisition (DoricStudio V5).

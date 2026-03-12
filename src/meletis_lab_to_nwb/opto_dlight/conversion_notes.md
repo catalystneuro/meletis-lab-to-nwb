@@ -11,7 +11,8 @@ opto+dLight/
 │   ├── oft_2024-03-01T10_16_32.csv          # 20 TTL files (no header: timestamp, sample, bool)
 │   └── ...
 └── signal/
-    ├── oft_2024-03-01T10_16_32_signal_df.csv # 20 fiber photometry signal files
+    ├── oft_2024-03-01T10_16_32_signal.csv    # 20 raw acquisition files (time, ref, sig)
+    ├── oft_2024-03-01T10_16_32_signal_df.csv # 20 processed dF/F files
     └── ...
 ```
 
@@ -29,11 +30,13 @@ opto+dLight/
 - Clock synchronization: FP clock and TTL clock are synchronized to within 7 ms (verified by matching FP start at ~8.117s with first TTL True at ~8.124s)
 
 ### Fiber Photometry (dLight)
-- Format: CSV, 2 columns: `Time(s)` and motion-corrected signal (sig - ref)
+- **Raw acquisition** (`*_signal.csv`): 3 columns — `time`, `ref` (405 nm isosbestic), `sig` (470 nm signal), arbitrary fluorescence units. Stored as `FiberPhotometryResponseSeries` and `FiberPhotometryResponseSeriesIsosbestic` in `nwbfile.acquisition`.
+- **Processed dF/F** (`*_signal_df.csv`): 2 columns — `Time(s)` and motion-corrected dF/F (sig - ref). Stored as `DfOverFFiberPhotometryResponseSeries` in `processing/ophys/`.
 - Sampling rate: ~60 Hz
 - Timestamps start at ~8s (fiber photometry system warm-up)
 - Indicator: dLight1.3b (dopamine sensor)
 - NeuroConv interface: Custom `FiberPhotometryInterface` via ndx-fiber-photometry
+- `FiberPhotometryTable` has 2 rows: row 0 = 470 nm signal channel, row 1 = 405 nm isosbestic reference
 
 ## Session/Subject Mapping (from details.csv)
 
@@ -73,6 +76,5 @@ opto+dLight/
 
 ## Known Issues
 - `start.fp` column in details.csv matches the sample index of the first TTL True value
-- `obs` column in details.csv is "TRUE" for some sessions (meaning unclear, not used)
 - `has_TTL` column is blank for vStr sessions in details.csv but TTL files exist for all 20 sessions
 - Typo in details.csv column name: `intenisty` (should be `intensity`)

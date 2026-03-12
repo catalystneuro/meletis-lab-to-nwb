@@ -13,6 +13,7 @@ def session_to_nwb(
     *,
     ttl_file_path: str | Path,
     signal_file_path: str | Path,
+    raw_signal_file_path: str | Path | None = None,
     output_dir_path: str | Path,
     subject_id: str,
     session_date: datetime.datetime,
@@ -30,7 +31,11 @@ def session_to_nwb(
     ttl_file_path : str or Path
         Path to the TTL CSV file containing optogenetic stimulation data.
     signal_file_path : str or Path
-        Path to the fiber photometry signal CSV file.
+        Path to the processed dF/F fiber photometry CSV file (*_signal_df.csv).
+    raw_signal_file_path : str or Path, optional
+        Path to the raw acquisition fiber photometry CSV file (*_signal.csv) with
+        columns ``time``, ``ref`` (405 nm), and ``sig`` (470 nm). When provided,
+        raw fluorescence traces are stored in nwbfile.acquisition.
     output_dir_path : str or Path
         Path to the directory where the NWB file will be saved.
     subject_id : str
@@ -61,9 +66,13 @@ def session_to_nwb(
     session_id = f"opto_dlight_{group}_{intensity_mw}mW"
     nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{video_name}.nwb"
 
+    fp_source = dict(file_path=str(signal_file_path))
+    if raw_signal_file_path is not None:
+        fp_source["raw_file_path"] = str(raw_signal_file_path)
+
     source_data = dict(
         Optogenetics=dict(file_path=str(ttl_file_path)),
-        FiberPhotometry=dict(file_path=str(signal_file_path)),
+        FiberPhotometry=fp_source,
     )
     conversion_options = dict(
         Optogenetics=dict(
@@ -122,6 +131,7 @@ if __name__ == "__main__":
     session_to_nwb(
         ttl_file_path=data_dir_path / "TTL" / f"{video_name}.csv",
         signal_file_path=data_dir_path / "signal" / f"{video_name}_signal_df.csv",
+        raw_signal_file_path=data_dir_path / "signal" / f"{video_name}_signal.csv",
         output_dir_path=output_dir_path,
         subject_id=row["mouse.ID"],
         session_date=session_date,

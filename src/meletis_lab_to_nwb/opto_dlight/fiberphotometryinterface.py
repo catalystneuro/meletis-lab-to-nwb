@@ -35,21 +35,30 @@ class FiberPhotometryInterface(BaseDataInterface):
     inside the ``ophys`` processing module (``processing/ophys/``), reflecting that it is a
     processed derivative (470 nm signal minus 405 nm isosbestic reference) rather than raw
     acquisition data.
+
+    Optionally, the raw acquisition file (*_signal.csv) with columns ``time``, ``ref``
+    (405 nm isosbestic control), and ``sig`` (470 nm signal) can be provided. When supplied,
+    the raw fluorescence traces are stored as ``FiberPhotometryResponseSeries`` objects in
+    ``nwbfile.acquisition``.
     """
 
     keywords = ("fiber photometry", "dopamine")
 
-    def __init__(self, file_path: str | Path, verbose: bool = True):
+    def __init__(self, file_path: str | Path, raw_file_path: str | Path | None = None, verbose: bool = True):
         """Initialize FiberPhotometryInterface.
 
         Parameters
         ----------
         file_path : str or Path
-            Path to the signal CSV file (e.g., *_signal_df.csv).
+            Path to the processed dF/F signal CSV file (e.g., *_signal_df.csv).
+        raw_file_path : str or Path, optional
+            Path to the raw acquisition CSV file (e.g., *_signal.csv) with columns
+            ``time``, ``ref`` (405 nm), and ``sig`` (470 nm). When provided, raw
+            fluorescence traces are added to ``nwbfile.acquisition``.
         verbose : bool, optional
             Whether to print verbose output, by default True.
         """
-        super().__init__(file_path=file_path, verbose=verbose)
+        super().__init__(file_path=file_path, raw_file_path=raw_file_path, verbose=verbose)
 
     def get_metadata(self) -> DeepDict:
         metadata = super().get_metadata()
@@ -61,15 +70,23 @@ class FiberPhotometryInterface(BaseDataInterface):
         return metadata
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict | None = None, stub_test: bool = False) -> None:
-        # Read signal CSV
+        # Read processed dF/F CSV
         df = pd.read_csv(self.source_data["file_path"])
         timestamps = df["Time(s)"].values
         signal_column = [c for c in df.columns if c != "Time(s)"][0]
         signal_data = df[signal_column].values
 
+        # Read raw acquisition CSV (optional)
+        raw_file_path = self.source_data.get("raw_file_path")
+        raw_df = None
+        if raw_file_path is not None:
+            raw_df = pd.read_csv(raw_file_path)
+
         if stub_test:
             timestamps = timestamps[:300]
             signal_data = signal_data[:300]
+            if raw_df is not None:
+                raw_df = raw_df.iloc[:300]
 
         # Read metadata
         fp_meta = (metadata or {}).get("FiberPhotometry", {})
@@ -164,6 +181,7 @@ class FiberPhotometryInterface(BaseDataInterface):
             name="fiber_photometry_table",
             description="Fiber photometry metadata table.",
         )
+        # Row 0: 470 nm signal channel
         fiber_photometry_table.add_row(
             location=location,
             excitation_wavelength_in_nm=excitation_wavelength_in_nm,
@@ -173,10 +191,20 @@ class FiberPhotometryInterface(BaseDataInterface):
             excitation_source=excitation_source_signal,
             photodetector=photodetector,
         )
+        # Row 1: 405 nm isosbestic reference channel
+        fiber_photometry_table.add_row(
+            location=location,
+            excitation_wavelength_in_nm=wavelength_405,
+            emission_wavelength_in_nm=emission_wavelength_in_nm,
+            indicator=indicator,
+            optical_fiber=optical_fiber,
+            excitation_source=excitation_source_isosbestic,
+            photodetector=photodetector,
+        )
 
-        table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+        dff_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
             region=[0],
-            description="Fiber photometry channel.",
+            description="470 nm signal channel (dF/F).",
         )
 
         series_meta = fp_meta.get("DfOverFFiberPhotometryResponseSeries", {})
@@ -190,7 +218,7 @@ class FiberPhotometryInterface(BaseDataInterface):
             data=signal_data,
             timestamps=timestamps,
             unit="a.u.",
-            fiber_photometry_table_region=table_region,
+            fiber_photometry_table_region=dff_table_region,
         )
 
         fiber_photometry_indicators = FiberPhotometryIndicators(indicators=[indicator])
@@ -212,3 +240,45 @@ class FiberPhotometryInterface(BaseDataInterface):
             ),
         )
         ophys_module.add(response_series)
+
+        # --- Raw acquisition series (optional) ---
+        if raw_df is not None:
+            raw_timestamps = raw_df["time"].values
+
+            sig_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+                region=[0],
+                description="470 nm signal channel (raw fluorescence).",
+            )
+            ref_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+                region=[1],
+                description="405 nm isosbestic control (raw fluorescence).",
+            )
+
+            raw_sig_meta = fp_meta.get("RawSignalFiberPhotometryResponseSeries", {})
+            raw_sig_series = FiberPhotometryResponseSeries(
+                name=raw_sig_meta.get("name", "FiberPhotometryResponseSeries"),
+                description=raw_sig_meta.get(
+                    "description",
+                    f"Raw 470 nm fluorescence signal from dLight1.3b fiber photometry",
+                ),
+                data=raw_df["sig"].values,
+                timestamps=raw_timestamps,
+                unit="a.u.",
+                fiber_photometry_table_region=sig_table_region,
+            )
+
+            raw_ref_meta = fp_meta.get("RawReferenceFiberPhotometryResponseSeries", {})
+            raw_ref_series = FiberPhotometryResponseSeries(
+                name=raw_ref_meta.get("name", "FiberPhotometryResponseSeriesIsosbestic"),
+                description=raw_ref_meta.get(
+                    "description",
+                    f"Raw 405 nm isosbestic reference fluorescence from dLight1.3b fiber photometry",
+                ),
+                data=raw_df["ref"].values,
+                timestamps=raw_timestamps,
+                unit="a.u.",
+                fiber_photometry_table_region=ref_table_region,
+            )
+
+            nwbfile.add_acquisition(raw_sig_series)
+            nwbfile.add_acquisition(raw_ref_series)

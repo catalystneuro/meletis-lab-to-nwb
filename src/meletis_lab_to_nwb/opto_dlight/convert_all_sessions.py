@@ -97,6 +97,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
 
             ttl_file_path = data_dir_path / "TTL" / f"{video_name}.csv"
             signal_file_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
+            raw_signal_file_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
 
             if not ttl_file_path.exists() and not signal_file_path.exists():
                 print(f"Warning: No TTL or signal file found, skipping: {video_name}")
@@ -107,18 +108,20 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 tzinfo=ZoneInfo("Europe/Stockholm")
             )
 
-            session_kwargs_list.append(
-                dict(
-                    ttl_file_path=ttl_file_path,
-                    signal_file_path=signal_file_path,
-                    subject_id=row["mouse.ID"],
-                    session_date=session_date,
-                    group=row["group"],
-                    line=row["line"],
-                    intensity_mw=float(row["intenisty"]),
-                    frequency_hz=float(row["frequency"]),
-                )
+            session_kwargs = dict(
+                ttl_file_path=ttl_file_path,
+                signal_file_path=signal_file_path,
+                subject_id=row["mouse.ID"],
+                session_date=session_date,
+                group=row["group"],
+                line=row["line"],
+                intensity_mw=float(row["intenisty"]),
+                frequency_hz=float(row["frequency"]),
             )
+            if raw_signal_file_path.exists():
+                session_kwargs["raw_signal_file_path"] = raw_signal_file_path
+
+            session_kwargs_list.append(session_kwargs)
 
     return session_kwargs_list
 
