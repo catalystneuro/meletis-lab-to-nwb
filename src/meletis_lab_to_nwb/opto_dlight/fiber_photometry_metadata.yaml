@@ -49,6 +49,9 @@ FiberPhotometry:
       405 nm Doric LED for dLight1.3b isosbestic reference channel. Power 15-25 µW.
       Delivered through DoricStudio V5 software.
 
+  FiberInsertion:
+    name: fiber_insertion
+
   OpticalFiber:
     # Optical fiber instance for photometry recording, linked to OpticalFiberModel via model=.
     name: optical_fiber
@@ -66,26 +69,50 @@ FiberPhotometry:
       Processed optical physiology data. Contains motion-corrected dF/F fluorescence
       signals from striatal dLight1.3b fiber photometry recordings.
 
+  FiberPhotometryLabMetaData:
+    name: fiber_photometry
+
+  FiberPhotometryTable:
+    name: fiber_photometry_table
+    description: "Fiber photometry metadata table."
+
   DfOverFFiberPhotometryResponseSeries:
     name: DfOverFFiberPhotometryResponseSeries
+    description: >-
+      Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
+      Preprocessing in DoricStudio V5 (Mantas et al. 2026, lines 920-924): raw 470 nm
+      and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
+      filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
+      to the 470 nm baseline and subtracted to remove shared artifacts (motion,
+      photobleaching). Acquired via interleaved 470/405 nm LED excitation at ~60 Hz
+      (Mantas et al. 2026, lines 917-919). Original signal column: {signal_column}.
+    table_region_description: "470 nm signal channel (dF/F)."
 
   Indicator:
-    # dLight1.3b: genetically encoded dopamine sensor (Bhatt et al., 2024).
-    # Expressed in striatal neurons via AAV (Addgene). Excitation 470 nm, emission 525 nm.
+    # dLight1.3b: genetically encoded dopamine sensor (Addgene plasmid #125560).
+    # Delivered as 500 nL unilateral injection of AAV5-CAG-dLight1.3b into the striatum
+    # (dCP: AP +0.74, ML ±1.5, DV -2.2; cCP: AP +0.38, ML +2.0, DV -2.9). Specs from
+    # Mantas et al. (2026), Viral and retrobead injections lines 628-629 and Implant
+    # placement lines 656-658.
+    name: indicator
     manufacturer: Addgene
     description: >-
-      Genetically encoded dopamine indicator dLight1.3b (Bhatt et al., 2024). Expressed via
-      AAV in striatal neurons for recording dopamine dynamics during optogenetic
-      self-stimulation.
+      Genetically encoded dopamine indicator dLight1.3b. Delivered via unilateral injection
+      of 500 nL AAV5-CAG-dLight1.3b (Addgene plasmid #125560) into the dorsal caudoputamen
+      (dCP; AP +0.74, ML ±1.5, DV -2.2) or central caudoputamen (cCP; AP +0.38, ML +2.0,
+      DV -2.9) for recording striatal dopamine release dynamics during ChRmine-mediated
+      optogenetic activation of Anxa1+ SNc dopamine neurons.
 
   RawSignalFiberPhotometryResponseSeries:
     name: FiberPhotometryResponseSeries
     description: >-
       Raw 470 nm fluorescence signal from dLight1.3b fiber photometry acquisition
       (DoricStudio V5).
+    table_region_description: "470 nm signal channel (raw fluorescence)."
 
   RawReferenceFiberPhotometryResponseSeries:
     name: FiberPhotometryResponseSeriesIsosbestic
     description: >-
       Raw 405 nm isosbestic reference fluorescence from dLight1.3b fiber photometry
       acquisition (DoricStudio V5).
+    table_region_description: "405 nm isosbestic control (raw fluorescence)."
