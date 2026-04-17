@@ -21,6 +21,7 @@ def session_to_nwb(
     line: str,
     intensity_mw: float,
     frequency_hz: float,
+    start_fp: int | None = None,
     stub_test: bool = False,
     verbose: bool = True,
 ):
@@ -50,6 +51,10 @@ def session_to_nwb(
         Laser intensity in milliwatts for this session.
     frequency_hz : float
         Laser stimulation frequency in Hz.
+    start_fp : int, optional
+        Value of the TTL `sample` column at the first TTL True event, taken from
+        ``details.csv``. When provided, used as a sanity check against the TTL
+        trace to detect file mis-joins between details.csv and the TTL CSV.
     stub_test : bool, optional
         If True, only convert a small amount of data for testing, by default False.
     verbose : bool, optional
@@ -79,6 +84,7 @@ def session_to_nwb(
             stub_test=stub_test,
             intensity_mw=intensity_mw,
             frequency_hz=frequency_hz,
+            start_fp=start_fp,
         ),
         FiberPhotometry=dict(stub_test=stub_test),
     )
@@ -115,7 +121,7 @@ if __name__ == "__main__":
 
     data_dir_path = Path("/Volumes/T9/data/Meletis/opto+dLight")
     output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/opto_dlight")
-    stub_test = True
+    stub_test = False
 
     details_file_path = data_dir_path / "details.csv"
     with open(details_file_path) as f:
@@ -139,5 +145,6 @@ if __name__ == "__main__":
         line=row["line"],
         intensity_mw=float(row["intenisty"]),
         frequency_hz=float(row["frequency"]),
+        start_fp=int(row["start.fp"]) if row.get("start.fp") not in (None, "", "NA") else None,
         stub_test=stub_test,
     )
