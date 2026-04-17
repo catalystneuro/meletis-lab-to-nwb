@@ -1,12 +1,10 @@
 """Primary script to run to convert all sessions in the opto+dLight dataset."""
 
 import csv
-import datetime
 import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pprint import pformat
-from zoneinfo import ZoneInfo
 
 from tqdm import tqdm
 
@@ -103,20 +101,10 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 print(f"Warning: No TTL or signal file found, skipping: {video_name}")
                 continue
 
-            date_str = video_name.replace("oft_", "")
-            session_date = datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(
-                tzinfo=ZoneInfo("Europe/Stockholm")
-            )
-
             session_kwargs = dict(
                 ttl_file_path=ttl_file_path,
                 signal_file_path=signal_file_path,
-                subject_id=row["mouse.ID"],
-                session_date=session_date,
-                group=row["group"],
-                line=row["line"],
-                intensity_mw=float(row["intenisty"]),
-                frequency_hz=float(row["frequency"]),
+                details_row=row,
             )
             if raw_signal_file_path.exists():
                 session_kwargs["raw_signal_file_path"] = raw_signal_file_path

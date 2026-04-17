@@ -15,13 +15,7 @@ def session_to_nwb(
     signal_file_path: str | Path,
     raw_signal_file_path: str | Path | None = None,
     output_dir_path: str | Path,
-    subject_id: str,
-    session_date: datetime.datetime,
-    group: str,
-    line: str,
-    intensity_mw: float,
-    frequency_hz: float,
-    start_fp: int | None = None,
+    details_row: dict | None = None,
     stub_test: bool = False,
     verbose: bool = True,
 ):
@@ -39,37 +33,27 @@ def session_to_nwb(
         raw fluorescence traces are stored in nwbfile.acquisition.
     output_dir_path : str or Path
         Path to the directory where the NWB file will be saved.
-    subject_id : str
-        The subject identifier (mouse ID).
-    session_date : datetime.datetime
-        The session start time with timezone info.
-    group : str
-        The recording site / experimental group (e.g., "dStr", "vStr").
-    line : str
-        The genetic line (e.g., "anxa1-flp").
-    intensity_mw : float
-        Laser intensity in milliwatts for this session.
-    frequency_hz : float
-        Laser stimulation frequency in Hz.
-    start_fp : int, optional
-        Value of the TTL `sample` column at the first TTL True event, taken from
-        ``details.csv``. When provided, used as a sanity check against the TTL
-        trace to detect file mis-joins between details.csv and the TTL CSV.
+    details_row : dict
+        A dictionary containing session details from the details.csv file, with
+        keys like "mouse.ID", "DoB", "group", "line", "intenisty", and "frequency".
     stub_test : bool, optional
         If True, only convert a small amount of data for testing, by default False.
     verbose : bool, optional
         If True, print verbose output, by default True.
     """
-    ttl_file_path = Path(ttl_file_path)
-    signal_file_path = Path(signal_file_path)
-    output_dir_path = Path(output_dir_path)
+    subject_id = details_row["mouse.ID"].replace("_", "-")
+
+    output_dir_path = Path(output_dir_path) / f"sub-{subject_id}"
     if stub_test:
         output_dir_path = output_dir_path / "nwb_stub"
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
+    ttl_file_path = Path(ttl_file_path)
+    signal_file_path = Path(signal_file_path)
     video_name = ttl_file_path.stem
-    session_id = f"opto_dlight_{group}_{intensity_mw}mW"
-    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{video_name}.nwb"
+
+    session_id = video_name.replace("_", "-")
+    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}.nwb"
 
     fp_source = dict(file_path=str(signal_file_path))
     if raw_signal_file_path is not None:
@@ -79,6 +63,9 @@ def session_to_nwb(
         Optogenetics=dict(file_path=str(ttl_file_path)),
         FiberPhotometry=fp_source,
     )
+    frequency_hz = float(details_row["frequency"])
+    start_fp = float(details_row.get("start.fp", 0.0))
+    intensity_mw = float(details_row["intenisty"])
     conversion_options = dict(
         Optogenetics=dict(
             stub_test=stub_test,
@@ -92,6 +79,11 @@ def session_to_nwb(
     converter = OptoDlightNWBConverter(source_data=source_data, verbose=verbose)
 
     metadata = converter.get_metadata()
+    date_str = ttl_file_path.stem.replace("oft_", "")
+    t_zone = ZoneInfo("Europe/Stockholm")
+    session_date = datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(
+        tzinfo=t_zone,
+    )
     metadata["NWBFile"]["session_start_time"] = session_date
     metadata["NWBFile"]["session_id"] = session_id
 
@@ -99,11 +91,23 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    metadata["Subject"]["subject_id"] = subject_id
-    metadata["Subject"]["genotype"] = line
+    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+    metadata["Subject"].update(
+        subject_id=subject_id,
+        sex=details_row.get("sex", "u").upper(),
+        genotype=details_row.get("line", "").capitalize(),
+        date_of_birth=date_of_birth,
+    )
 
     # Override per-session recording location (Allen Atlas names)
-    metadata["FiberPhotometry"]["location"] = "Caudoputamen" if group == "dStr" else "Nucleus accumbens"
+    group_names_to_locations = {
+        "dStr": "Caudoputamen",
+        "vStr": "Nucleus accumbens",
+    }
+    metadata["FiberPhotometry"]["location"] = group_names_to_locations.get(
+        details_row["group"],
+        "unknown",
+    )
 
     converter.run_conversion(
         metadata=metadata,
@@ -129,22 +133,12 @@ if __name__ == "__main__":
         row = next(reader)
 
     video_name = row["video"]
-    date_str = video_name.replace("oft_", "")
-    session_date = datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(
-        tzinfo=ZoneInfo("Europe/Stockholm")
-    )
 
     session_to_nwb(
         ttl_file_path=data_dir_path / "TTL" / f"{video_name}.csv",
         signal_file_path=data_dir_path / "signal" / f"{video_name}_signal_df.csv",
         raw_signal_file_path=data_dir_path / "signal" / f"{video_name}_signal.csv",
         output_dir_path=output_dir_path,
-        subject_id=row["mouse.ID"],
-        session_date=session_date,
-        group=row["group"],
-        line=row["line"],
-        intensity_mw=float(row["intenisty"]),
-        frequency_hz=float(row["frequency"]),
-        start_fp=int(row["start.fp"]) if row.get("start.fp") not in (None, "", "NA") else None,
+        details_row=row,
         stub_test=stub_test,
     )
