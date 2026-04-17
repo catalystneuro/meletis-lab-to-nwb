@@ -17,9 +17,13 @@ class OptogeneticsTTLInterface(BaseDataInterface):
     indicating whether the laser was on at each sample (acquired at the ~30 Hz video frame rate).
 
     Stimulation episodes are extracted by grouping consecutive True samples separated by gaps > 1s.
-    The first TTL burst is interpreted as an FP-acquisition sync pulse (not a real stim) and is
-    excluded from both the ``OptogeneticSeries`` power trace and the ``stimulation_episodes``
-    ``TimeIntervals``; see ``open_questions.md`` (item 1) — pending lab confirmation.
+    Two classes of burst are excluded from both the ``OptogeneticSeries`` power trace and the
+    ``stimulation_episodes`` ``TimeIntervals`` (pending lab confirmation — see
+    ``open_questions.md`` items 1 and 1b):
+    1. The first TTL burst, interpreted as an FP-acquisition sync pulse.
+    2. Any additional burst whose duration exceeds ``max_stim_duration_s`` (default 1.5 s,
+       well above the documented 1 s stimulation pulse and well below the observed ~5–10 s
+       warm-up/calibration bursts that appear at the start of some sessions).
 
     Uses ndx-optogenetics (OptogeneticExperimentMetadata) to store rich device and virus metadata
     extracted from Mantas et al. (2026), including the ChRmine virus, SNc injection coordinates,
@@ -56,6 +60,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         intensity_mw: float = 1.0,
         frequency_hz: float = 40.0,
         start_fp: int | None = None,
+        max_stim_duration_s: float = 1.5,
     ) -> None:
         df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
         timestamps = pd.to_datetime(df["timestamp"])
@@ -85,30 +90,37 @@ class OptogeneticsTTLInterface(BaseDataInterface):
                 )
 
         # Compute burst boundaries in `true_indices` (consecutive True samples separated by
-        # a gap > 1 s define a new burst).
+        # a gap > 1 s define a new burst). `burst_boundaries` holds the start position of each
+        # burst within `true_indices`, with a sentinel at the end for uniform slicing.
         true_times = time_seconds[true_indices]
         gaps = np.diff(true_times)
-        burst_starts_in_true = np.where(gaps > 1.0)[0] + 1
+        burst_boundaries = np.concatenate([[0], np.where(gaps > 1.0)[0] + 1, [len(true_indices)]])
 
-        # --- Exclude the first TTL burst (FP-acquisition sync pulse, not a real stim) ---
-        # Pending lab confirmation (see open_questions.md, item 1). Evidence:
-        # (a) details.csv.start.fp equals the TTL `sample` value at the first True row,
-        # (b) first-True timing (~8.1 s) coincides with the start of the FP recording,
-        # (c) the first burst lasts ~6 s whereas real stim bursts last ~1 s.
-        # We therefore drop the first burst from both the OptogeneticSeries power trace
-        # (zeroed over the FP-sync interval) and the `stimulation_episodes` TimeIntervals.
-        if len(burst_starts_in_true) > 0:
-            fp_sync_indices = true_indices[: burst_starts_in_true[0]]
-            stim_burst_starts_in_true = burst_starts_in_true
-        else:
-            # Only one contiguous burst in the whole session — treat it as the FP-sync pulse
-            # and emit no stimulation episodes.
-            fp_sync_indices = true_indices
-            stim_burst_starts_in_true = np.array([], dtype=int)
+        # --- Exclude non-stimulation bursts (pending lab confirmation — see open_questions.md
+        # items 1 and 1b). Two rules, both conservative:
+        # (1) the first burst is the FP-acquisition sync pulse (timing coincides with FP-start
+        #     at ~8.1 s; details.csv.start.fp equals the TTL `sample` value at the first True
+        #     row);
+        # (2) any burst longer than `max_stim_duration_s` (default 1.5 s) is a warm-up /
+        #     calibration pulse. The documented protocol is 1 s stim bursts; observed
+        #     warm-up bursts are ~5-10 s, so there is a wide safe gap.
+        stim_burst_starts_in_true: list[int] = []
+        excluded_burst_indices: list[np.ndarray] = []
+        for burst_idx in range(len(burst_boundaries) - 1):
+            b_start = burst_boundaries[burst_idx]
+            b_end = burst_boundaries[burst_idx + 1]
+            duration = true_times[b_end - 1] - true_times[b_start]
+            is_first_burst = burst_idx == 0
+            is_overlong = duration > max_stim_duration_s
+            if is_first_burst or is_overlong:
+                excluded_burst_indices.append(true_indices[b_start:b_end])
+            else:
+                stim_burst_starts_in_true.append(int(b_start))
 
-        # Build OptogeneticSeries power trace with the FP-sync interval zeroed out.
+        # Build OptogeneticSeries power trace with excluded-burst samples zeroed out.
         power_data = np.where(ttl_values, intensity_w, 0.0).astype(np.float64)
-        power_data[fp_sync_indices] = 0.0
+        if excluded_burst_indices:
+            power_data[np.concatenate(excluded_burst_indices)] = 0.0
 
         opto_meta = (metadata or {}).get("Optogenetics", {})
         site_meta = opto_meta.get("OptogeneticStimulusSite", {})
@@ -148,13 +160,15 @@ class OptogeneticsTTLInterface(BaseDataInterface):
             description=(stim_meta.get("description") or "").format(**fmt_kwargs),
         )
 
-        # Emit one TimeIntervals row per real stimulation burst (first burst already excluded).
-        for burst_idx, b_start in enumerate(stim_burst_starts_in_true):
-            b_end = (
-                stim_burst_starts_in_true[burst_idx + 1]
-                if burst_idx + 1 < len(stim_burst_starts_in_true)
-                else len(true_indices)
-            )
+        # Emit one TimeIntervals row per real stimulation burst (excluded bursts already filtered).
+        # `stim_burst_starts_in_true` holds each kept burst's start position within `true_indices`;
+        # look up the matching end position from `burst_boundaries` (same index in the full list).
+        starts_set = set(stim_burst_starts_in_true)
+        for burst_idx in range(len(burst_boundaries) - 1):
+            b_start = int(burst_boundaries[burst_idx])
+            if b_start not in starts_set:
+                continue
+            b_end = int(burst_boundaries[burst_idx + 1])
             episode_onset = true_times[b_start]
             episode_offset = true_times[b_end - 1]
             stim_intervals.add_row(start_time=episode_onset, stop_time=episode_offset)
