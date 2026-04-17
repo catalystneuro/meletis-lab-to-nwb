@@ -14,11 +14,12 @@ class OptogeneticsTTLInterface(BaseDataInterface):
     """DataInterface for reading optogenetic stimulation TTL CSVs and writing to NWB.
 
     The TTL CSVs have 3 columns (no header): ISO timestamp, sample index, and boolean (True/False)
-    indicating whether the laser was on at each ~143 Hz sample. The first burst of True values
-    corresponds to fiber photometry system activation and is excluded from the optogenetic data.
+    indicating whether the laser was on at each sample (acquired at the ~30 Hz video frame rate).
 
     Stimulation episodes are extracted by grouping consecutive True samples separated by gaps > 1s.
-    Each episode represents a nosepoke-triggered bilateral SNc laser stimulation (40 Hz, 1s on / 3s off).
+    The first TTL burst is interpreted as an FP-acquisition sync pulse (not a real stim) and is
+    excluded from both the ``OptogeneticSeries`` power trace and the ``stimulation_episodes``
+    ``TimeIntervals``; see ``open_questions.md`` (item 1) — pending lab confirmation.
 
     Uses ndx-optogenetics (OptogeneticExperimentMetadata) to store rich device and virus metadata
     extracted from Mantas et al. (2026), including the ChRmine virus, SNc injection coordinates,
@@ -54,6 +55,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         stub_test: bool = False,
         intensity_mw: float = 1.0,
         frequency_hz: float = 40.0,
+        start_fp: int | None = None,
     ) -> None:
         df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
         timestamps = pd.to_datetime(df["timestamp"])
@@ -62,44 +64,61 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # Convert to seconds relative to session start
         time_seconds = (timestamps - session_start).dt.total_seconds().values
         ttl_values = df["ttl"].values.astype(bool)
-
-        # Build the OptogeneticSeries: power in watts when laser is on, 0 when off
         intensity_w = intensity_mw / 1000.0
-        power_data = np.where(ttl_values, intensity_w, 0.0).astype(np.float64)
 
         # Identify stimulation episodes (groups of True separated by > 1s gap)
         true_indices = np.where(ttl_values)[0]
         if len(true_indices) == 0:
             return
 
+        # Validate details.csv `start.fp` against the TTL trace (sanity check for file mis-joins).
+        # `start.fp` is the value of the TTL `sample` column at the first TTL True row (NOT the
+        # row number — the `sample` column can have gaps from dropped frames).
+        if start_fp is not None:
+            first_true_sample = int(df["sample"].iloc[true_indices[0]])
+            if first_true_sample != start_fp:
+                raise ValueError(
+                    f"details.csv start.fp={start_fp} does not match the TTL `sample` column "
+                    f"at the first True row (got {first_true_sample}). This usually indicates "
+                    f"a file mis-join between details.csv and the TTL CSV "
+                    f"({self.file_path.name})."
+                )
+
+        # Compute burst boundaries in `true_indices` (consecutive True samples separated by
+        # a gap > 1 s define a new burst).
         true_times = time_seconds[true_indices]
         gaps = np.diff(true_times)
-        burst_boundaries = np.where(gaps > 1.0)[0] + 1
-        burst_starts = np.concatenate([[0], burst_boundaries])
+        burst_starts_in_true = np.where(gaps > 1.0)[0] + 1
 
-        # Skip the first burst (fiber photometry system activation)
-        if len(burst_starts) > 1:
-            first_stim_idx = true_indices[burst_starts[1]]
+        # --- Exclude the first TTL burst (FP-acquisition sync pulse, not a real stim) ---
+        # Pending lab confirmation (see open_questions.md, item 1). Evidence:
+        # (a) details.csv.start.fp equals the TTL `sample` value at the first True row,
+        # (b) first-True timing (~8.1 s) coincides with the start of the FP recording,
+        # (c) the first burst lasts ~6 s whereas real stim bursts last ~1 s.
+        # We therefore drop the first burst from both the OptogeneticSeries power trace
+        # (zeroed over the FP-sync interval) and the `stimulation_episodes` TimeIntervals.
+        if len(burst_starts_in_true) > 0:
+            fp_sync_indices = true_indices[: burst_starts_in_true[0]]
+            stim_burst_starts_in_true = burst_starts_in_true
         else:
-            return
+            # Only one contiguous burst in the whole session — treat it as the FP-sync pulse
+            # and emit no stimulation episodes.
+            fp_sync_indices = true_indices
+            stim_burst_starts_in_true = np.array([], dtype=int)
 
-        rate = 1.0 / np.median(np.diff(time_seconds[:1000]))
+        # Build OptogeneticSeries power trace with the FP-sync interval zeroed out.
+        power_data = np.where(ttl_values, intensity_w, 0.0).astype(np.float64)
+        power_data[fp_sync_indices] = 0.0
 
-        # Trim data: start 1s before the first real stimulation episode
-        buffer_samples = int(rate)  # 1s of samples at the actual TTL sampling rate (~143 Hz)
-        trim_start = max(0, first_stim_idx - buffer_samples)
-
-        if stub_test:
-            # For stub test, only keep first 300 samples after trim
-            trim_end = min(trim_start + 300, len(time_seconds))
-        else:
-            trim_end = len(time_seconds)
-
-        trimmed_time = time_seconds[trim_start:trim_end]
-        trimmed_power = power_data[trim_start:trim_end]
-
-        # Shift timestamps so the series starts at the trimmed time
-        starting_time = trimmed_time[0]
+        opto_meta = (metadata or {}).get("Optogenetics", {})
+        site_meta = opto_meta.get("OptogeneticStimulusSite", {})
+        excitation_lambda = float(site_meta.get("excitation_lambda", 640.0))
+        fmt_kwargs = dict(
+            intensity_mw=intensity_mw,
+            intensity_w=intensity_w,
+            frequency_hz=frequency_hz,
+            excitation_lambda=excitation_lambda,
+        )
 
         # --- ndx-optogenetics: rich device and virus metadata ---
         self._add_optogenetics_metadata(
@@ -110,38 +129,32 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         )
 
         # --- Core NWB: OptogeneticSeries (continuous TTL power trace) ---
-        ogen_site = nwbfile.ogen_sites.get("OptogeneticStimulusSite")
+        site_name = site_meta.get("name")
+        ogen_site = nwbfile.ogen_sites.get(site_name)
+        series_meta = opto_meta.get("OptogeneticSeries", {})
         ogen_series = OptogeneticSeries(
-            name="OptogeneticSeries",
-            description=(
-                f"Optogenetic stimulation TTL trace. Values represent laser power in watts "
-                f"({intensity_mw} mW = {intensity_w:.4f} W when on, 0 when off). "
-                f"Protocol: {frequency_hz} Hz pulse train, 1 s stimulation triggered by nosepoke, "
-                f"3 s inter-stimulation interval. Bilateral SNc ChRmine activation. "
-                f"The first TTL burst (fiber photometry system activation) has been excluded."
-            ),
-            data=trimmed_power,
-            rate=rate,
-            starting_time=starting_time,
+            name=series_meta.get("name"),
+            description=(series_meta.get("description") or "").format(**fmt_kwargs),
+            data=power_data,
+            timestamps=time_seconds,
             site=ogen_site,
         )
         nwbfile.add_stimulus(ogen_series)
 
-        # --- Stimulation episodes as TimeIntervals (onset/offset per nosepoke-triggered burst) ---
+        # --- Stimulation episodes as TimeIntervals (onset/offset per real stim burst) ---
+        stim_meta = opto_meta.get("StimulationEpisodes", {})
         stim_intervals = nwbfile.create_time_intervals(
-            name="stimulation_episodes",
-            description=(
-                "Nosepoke-triggered optogenetic stimulation episodes. Each row represents one "
-                "stimulation burst (1 s of 40 Hz ChRmine laser in bilateral SNc). "
-                "The first TTL burst (fiber photometry system activation) is excluded. "
-                f"Session laser intensity: {intensity_mw} mW, wavelength: 640 nm."
-            ),
+            name=stim_meta.get("name"),
+            description=(stim_meta.get("description") or "").format(**fmt_kwargs),
         )
 
-        # Extract episode onset/offset times (skip first burst)
-        for burst_idx in range(1, len(burst_starts)):
-            b_start = burst_starts[burst_idx]
-            b_end = burst_starts[burst_idx + 1] if burst_idx + 1 < len(burst_starts) else len(true_indices)
+        # Emit one TimeIntervals row per real stimulation burst (first burst already excluded).
+        for burst_idx, b_start in enumerate(stim_burst_starts_in_true):
+            b_end = (
+                stim_burst_starts_in_true[burst_idx + 1]
+                if burst_idx + 1 < len(stim_burst_starts_in_true)
+                else len(true_indices)
+            )
             episode_onset = true_times[b_start]
             episode_offset = true_times[b_end - 1]
             stim_intervals.add_row(start_time=episode_onset, stop_time=episode_offset)
@@ -183,10 +196,10 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # to avoid dict_deep_update deduplicating [640, 640] → [640].
         esm_meta = opto_meta.get("ExcitationSourceModel", {})
         laser_model = ExcitationSourceModel(
-            name=esm_meta.get("name", "cobalt_640nm_laser_model"),
-            manufacturer=esm_meta.get("manufacturer", "Cobalt"),
-            source_type=esm_meta.get("source_type", "Solid-State Laser"),
-            excitation_mode=esm_meta.get("excitation_mode", "one-photon"),
+            name=esm_meta.get("name"),
+            manufacturer=esm_meta.get("manufacturer"),
+            source_type=esm_meta.get("source_type"),
+            excitation_mode=esm_meta.get("excitation_mode"),
             wavelength_range_in_nm=[excitation_lambda, excitation_lambda],
         )
         nwbfile.add_device_model(laser_model)
@@ -194,8 +207,8 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # --- ExcitationSource: the specific laser instance, linked to its model ---
         es_meta = opto_meta.get("ExcitationSource") or {}
         laser = ExcitationSource(
-            name="laser",
-            description=es_meta.get("description", "").format(**fmt_kwargs),
+            name=es_meta.get("name"),
+            description=(es_meta.get("description") or "").format(**fmt_kwargs),
             model=laser_model,
             power_in_W=intensity_mw / 1000.0,
         )
@@ -204,12 +217,12 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # --- OpticalFiberModel: specs shared by both implanted fibers ---
         ofm_meta = opto_meta.get("OpticalFiberModel", {})
         fiber_model = OpticalFiberModel(
-            name=ofm_meta.get("name", "RWD_R-FOC-BL200C-22NA_model"),
-            manufacturer=ofm_meta.get("manufacturer", "RWD"),
-            model_number=ofm_meta.get("model_number", "R-FOC-BL200C-22NA"),
-            numerical_aperture=float(ofm_meta.get("numerical_aperture", 0.22)),
-            core_diameter_in_um=float(ofm_meta.get("core_diameter_in_um", 200.0)),
-            ferrule_name=ofm_meta.get("ferrule_name", "ceramic ferrule"),
+            name=ofm_meta.get("name"),
+            manufacturer=ofm_meta.get("manufacturer"),
+            model_number=ofm_meta.get("model_number"),
+            numerical_aperture=float(ofm_meta.get("numerical_aperture")),
+            core_diameter_in_um=float(ofm_meta.get("core_diameter_in_um")),
+            ferrule_name=ofm_meta.get("ferrule_name"),
         )
         nwbfile.add_device_model(fiber_model)
 
@@ -221,51 +234,50 @@ class OptogeneticsTTLInterface(BaseDataInterface):
                 insertion_position_ap_in_mm=fiber_spec["insertion_position_ap_in_mm"],
                 insertion_position_ml_in_mm=fiber_spec["insertion_position_ml_in_mm"],
                 insertion_position_dv_in_mm=fiber_spec["insertion_position_dv_in_mm"],
-                position_reference=fiber_spec.get("position_reference", "bregma at the cortical surface"),
+                position_reference=fiber_spec.get("position_reference"),
                 hemisphere=fiber_spec["hemisphere"],
             )
             fiber = OpticalFiber(
                 name=fiber_spec["name"],
                 fiber_insertion=fiber_insertion,
-                description=fiber_spec.get("description", "Optical fiber for SNc optogenetic stimulation."),
+                description=fiber_spec.get("description") or "",
                 model=fiber_model,
             )
             nwbfile.add_device(fiber)
             fiber_objects[fiber_spec["name"]] = fiber
 
         # --- OptogeneticStimulusSite (required by OptogeneticSeries) ---
-        site_location = site_meta.get("location", "substantia nigra pars compacta (SNc), bilateral")
         ogen_site = OptogeneticStimulusSite(
-            name="OptogeneticStimulusSite",
-            description=site_meta.get("description", "").format(**fmt_kwargs),
+            name=site_meta.get("name"),
+            description=(site_meta.get("description") or "").format(**fmt_kwargs),
             device=laser,
             excitation_lambda=excitation_lambda,
-            location=site_location,
+            location=site_meta.get("location"),
         )
         nwbfile.add_ogen_site(ogen_site)
 
         # --- Viral vector ---
         vv_meta = opto_meta.get("ViralVector", {})
         virus = ViralVector(
-            name=vv_meta.get("name", "chrmine_virus"),
-            construct_name=vv_meta.get("construct_name", "AAV8-nEF-Coff/Fon-ChRmine-oScarlet"),
-            manufacturer=vv_meta.get("manufacturer", "Addgene"),
-            titer_in_vg_per_ml=float(vv_meta.get("titer_in_vg_per_ml", 1e13)),
-            description=vv_meta.get("description", ""),
+            name=vv_meta.get("name"),
+            construct_name=vv_meta.get("construct_name"),
+            manufacturer=vv_meta.get("manufacturer"),
+            titer_in_vg_per_ml=float(vv_meta.get("titer_in_vg_per_ml")),
+            description=vv_meta.get("description") or "",
         )
 
         # --- Virus injections (bilateral) ---
         injection_objects = {}
         for inj_spec in opto_meta.get("VirusInjections", []):
-            inj_desc = inj_spec.get("description", "").format(
+            inj_desc = (inj_spec.get("description") or "").format(
                 volume_nL=inj_spec["volume_in_uL"] * 1000,
-                construct_name=vv_meta.get("construct_name", "AAV8-nEF-Coff/Fon-ChRmine-oScarlet"),
+                construct_name=vv_meta.get("construct_name"),
             )
             inj = ViralVectorInjection(
                 name=inj_spec["name"],
                 location=inj_spec["location"],
                 hemisphere=inj_spec["hemisphere"],
-                reference=inj_spec.get("reference", "bregma at the cortical surface"),
+                reference=inj_spec.get("reference"),
                 ap_in_mm=inj_spec["ap_in_mm"],
                 ml_in_mm=inj_spec["ml_in_mm"],
                 dv_in_mm=inj_spec["dv_in_mm"],
@@ -286,12 +298,12 @@ class OptogeneticsTTLInterface(BaseDataInterface):
             hemisphere = eff_spec.get("hemisphere") or ("left" if eff_spec["name"].endswith("_left") else "right")
             inj_name = _hemisphere_to_injection.get(hemisphere)
             inj_obj = injection_objects.get(inj_name)
-            eff_desc = eff_spec.get("description", "").format(**fmt_kwargs)
+            eff_desc = (eff_spec.get("description") or "").format(**fmt_kwargs)
             effector = Effector(
                 name=eff_spec["name"],
-                label=eff_spec.get("label", "ChRmine"),
+                label=eff_spec.get("label"),
                 description=eff_desc,
-                manufacturer=eff_spec.get("manufacturer", "Addgene"),
+                manufacturer=eff_spec.get("manufacturer"),
                 viral_vector_injection=inj_obj,
             )
             effector_objects.append(effector)
@@ -301,9 +313,11 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         fiber_name_to_effector = {eff.name.replace("ChRmine_", "optical_fiber_"): eff for eff in effector_objects}
 
         sites_table_meta = opto_meta.get("OptogeneticSitesTable", {})
-        sites_table = OptogeneticSitesTable(description=sites_table_meta.get("description", "").format(**fmt_kwargs))
-        sites_table.add_column(name="excitation_source", description="Laser used for optogenetic stimulation.")
-        sites_table.add_column(name="optical_fiber", description="Implanted optical fiber.")
+        sites_table = OptogeneticSitesTable(
+            description=(sites_table_meta.get("description") or "").format(**fmt_kwargs)
+        )
+        for col in sites_table_meta.get("columns", []):
+            sites_table.add_column(name=col["name"], description=col["description"])
 
         for fiber_name, fiber_obj in fiber_objects.items():
             effector = fiber_name_to_effector.get(fiber_name)
@@ -312,9 +326,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # --- OptogeneticExperimentMetadata: top-level metadata container ---
         all_injections = list(injection_objects.values())
         opto_experiment_meta = OptogeneticExperimentMetadata(
-            stimulation_software=opto_meta.get(
-                "stimulation_software", "Bonsai v2.6.3 (Lopes et al., 2015) + custom Arduino IDE script"
-            ),
+            stimulation_software=opto_meta.get("stimulation_software"),
             optogenetic_sites_table=sites_table,
             optogenetic_effectors=OptogeneticEffectors(effectors=effector_objects),
             optogenetic_viruses=OptogeneticViruses(viral_vectors=[virus]),
