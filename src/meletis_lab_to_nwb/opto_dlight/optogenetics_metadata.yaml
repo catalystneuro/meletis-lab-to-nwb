@@ -25,6 +25,7 @@ Optogenetics:
     # Instance linked to ExcitationSourceModel above via model= parameter.
     # Connected via Doric 200 µm low-autofluorescence patch cord and Thorlabs ceramic sleeves.
     # Power calibrated before each experiment with a Thorlabs photodiode power sensor.
+    name: laser
     description: >-
       Cobalt 640 nm solid-state laser for bilateral SNc ChRmine optogenetic activation.
       Session intensity: {intensity_mw} mW. Connected via Doric 200 μm low-autofluorescence
@@ -34,12 +35,28 @@ Optogenetics:
 
   OptogeneticStimulusSite:
     # Required by OptogeneticSeries (core NWB); links to the laser as device.
+    name: OptogeneticStimulusSite
     excitation_lambda: 640.0
     location: "Substantia nigra, compact part"
     description: >-
       Bilateral SNc optogenetic stimulation site. ChRmine ({excitation_lambda:.0f} nm,
       {frequency_hz:.0f} Hz, {intensity_mw} mW). Anxa1-Flp mice expressing
       AAV8-nEF-Coff/Fon-ChRmine-oScarlet (Addgene #137160) bilaterally in SNc.
+
+  OptogeneticSeries:
+    name: OptogeneticSeries
+    description: >-
+      Optogenetic stimulation TTL trace. Values represent laser power in watts
+      ({intensity_mw} mW = {intensity_w:.4f} W when on, 0 when off).
+      Protocol: {frequency_hz} Hz pulse train, 1 s stimulation bursts with 3 s
+      inter-stimulation interval. Bilateral SNc ChRmine activation.
+
+  StimulationEpisodes:
+    name: stimulation_episodes
+    description: >-
+      Optogenetic stimulation episodes. Each row represents one stimulation burst
+      (1 s of {frequency_hz:.0f} Hz ChRmine laser in bilateral SNc).
+      Session laser intensity: {intensity_mw} mW, wavelength: {excitation_lambda:.0f} nm.
 
   OpticalFibers:
     # 200 µm ceramic ferrule, NA 0.22 (RWD Cat# R-FOC-BL200C-22NA). Implanted immediately
@@ -105,7 +122,7 @@ Optogenetics:
         Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, left hemisphere. Expressed
         selectively in Anxa1+ SNc dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice.
         Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
-        train, 1 s per nosepoke.
+        train, 1 s bursts.
     - name: ChRmine_right
       label: ChRmine
       manufacturer: Addgene
@@ -113,7 +130,7 @@ Optogenetics:
         Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, right hemisphere. Expressed
         selectively in Anxa1+ SNc dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice.
         Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
-        train, 1 s per nosepoke.
+        train, 1 s bursts.
 
   OptogeneticSitesTable:
     description: >-
@@ -121,3 +138,8 @@ Optogenetics:
       (AAV8-nEF-Coff/Fon, Addgene #137160) and are stimulated with a Cobalt
       {excitation_lambda:.0f} nm laser via 200 μm optic fibers (RWD, R-FOC-BL200C-22NA,
       NA 0.22).
+    columns:
+      - name: excitation_source
+        description: "Laser used for optogenetic stimulation."
+      - name: optical_fiber
+        description: "Implanted optical fiber."
