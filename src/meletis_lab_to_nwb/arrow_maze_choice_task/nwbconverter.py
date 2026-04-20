@@ -1,19 +1,13 @@
-"""Primary NWBConverter class for this dataset."""
+"""Primary NWBConverter class for the arrow maze choice task."""
 
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import (
-    PhySortingInterface,
-    SpikeGLXRecordingInterface,
-)
-
-from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskBehaviorInterface
+from neuroconv.datainterfaces import DeepLabCutInterface, ExternalVideoInterface
 
 
 class ArrowMazeChoiceTaskNWBConverter(NWBConverter):
-    """Primary conversion class for my extracellular electrophysiology dataset."""
+    """Primary conversion class for the arrow maze choice task dataset."""
 
     data_interface_classes = dict(
-        Recording=SpikeGLXRecordingInterface,
-        Sorting=PhySortingInterface,
-        Behavior=ArrowMazeChoiceTaskBehaviorInterface,
+        Video=ExternalVideoInterface,
+        PoseEstimation=DeepLabCutInterface,
     )
