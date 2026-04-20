@@ -88,6 +88,28 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    # Select the correct viral vector and FP indicator based on mouse line.
+    # Anxa1-Flp → AAV8-nEF-Coff/Fon-ChRmine-oScarlet  (Addgene #137160, Flp-dependent).
+    # DAT-Cre   → AAV8-nEF-Con/Foff 2.0-ChRmine-oScarlet (Addgene #137161, Cre-dependent).
+    # Both lines use the same dLight1.3b sensor; descriptions reference the correct neuron population.
+    mouse_line = details_row.get("line", "").lower().strip()
+
+    viral_vectors = metadata["Optogenetics"].get("ViralVectors", {})
+    if mouse_line not in viral_vectors:
+        raise ValueError(
+            f"Unknown mouse line '{mouse_line}' — no ViralVector entry in optogenetics_metadata.yaml. "
+            f"Known lines: {list(viral_vectors.keys())}"
+        )
+    metadata["Optogenetics"]["ViralVector"] = viral_vectors[mouse_line]
+
+    indicators = metadata["FiberPhotometry"].get("Indicators", {})
+    if mouse_line not in indicators:
+        raise ValueError(
+            f"Unknown mouse line '{mouse_line}' — no Indicator entry in fiber_photometry_metadata.yaml. "
+            f"Known lines: {list(indicators.keys())}"
+        )
+    metadata["FiberPhotometry"]["Indicator"] = indicators[mouse_line]
+
     date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
     metadata["Subject"].update(
         subject_id=subject_id,

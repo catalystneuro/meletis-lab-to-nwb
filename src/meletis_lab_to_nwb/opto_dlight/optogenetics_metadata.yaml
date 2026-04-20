@@ -40,8 +40,8 @@ Optogenetics:
     location: "Substantia nigra, compact part"
     description: >-
       Bilateral SNc optogenetic stimulation site. ChRmine ({excitation_lambda:.0f} nm,
-      {frequency_hz:.0f} Hz, {intensity_mw} mW). Anxa1-Flp mice expressing
-      AAV8-nEF-Coff/Fon-ChRmine-oScarlet (Addgene #137160) bilaterally in SNc.
+      {frequency_hz:.0f} Hz, {intensity_mw} mW). ChRmine-oScarlet expressed bilaterally
+      in SNc via Cre/Flp-conditional AAV.
 
   OptogeneticSeries:
     name: OptogeneticSeries
@@ -80,20 +80,36 @@ Optogenetics:
         Right-hemisphere optical fiber for SNc optogenetic stimulation (ChRmine, 640 nm).
         Implanted immediately after virus injection.
 
-  ViralVector:
-    # Flp-dependent AAV8 expressing ChRmine-oScarlet under the nEF promoter.
-    # Injected bilaterally into SNc of Anxa1-Flp mice (Mantas et al. 2026, lines 612-637).
-    name: chrmine_virus
-    construct_name: "AAV8-nEF-Coff/Fon-ChRmine-oScarlet"
-    manufacturer: Addgene
-    titer_in_vg_per_ml: 1.0e13
-    description: >-
-      Addgene #137160. Flp-dependent (Coff/Fon) AAV8 expressing ChRmine-oScarlet under the
-      nEF promoter. Injected bilaterally into SNc of Anxa1-Flp mice to selectively express
-      ChRmine in Anxa1+ dopamine neurons.
+  # ViralVector is NOT set here — it is injected per-session by convert_session.py based on
+  # details.csv `line` (anxa1-flp → #137160 Coff/Fon; dat-cre → #137161 Con/Foff 2.0).
+  # The two possible entries are defined under ViralVectors below for reference.
+  ViralVectors:
+    anxa1-flp:
+      # Flp-dependent (Coff/Fon) AAV8. Used with Anxa1-Flp mice to express ChRmine
+      # selectively in Anxa1+ (Flp+) SNc dopamine neurons.
+      name: chrmine_virus
+      construct_name: "AAV8-nEF-Coff/Fon-ChRmine-oScarlet"
+      manufacturer: Addgene
+      titer_in_vg_per_ml: 1.0e13
+      description: >-
+        Addgene #137160. Flp-dependent (Cre-OFF/Flp-ON) AAV8 expressing ChRmine-oScarlet
+        under the nEF promoter. Injected bilaterally into SNc of Anxa1-Flp mice to selectively
+        express ChRmine in Anxa1+ (Flp-recombinase-expressing) dopamine neurons.
+    dat-cre:
+      # Cre-dependent (Con/Foff 2.0) AAV8. Used with DAT-Cre mice to express ChRmine
+      # selectively in DAT+ (Cre+) SNc dopamine neurons.
+      name: chrmine_virus
+      construct_name: "AAV8-nEF-Con/Foff 2.0-ChRmine-oScarlet"
+      manufacturer: Addgene
+      titer_in_vg_per_ml: 1.0e13
+      description: >-
+        Addgene #137161. Cre-dependent (Cre-ON/Flp-OFF) AAV8 expressing ChRmine-oScarlet
+        under the nEF promoter. Injected bilaterally into SNc of DAT-Cre mice to selectively
+        express ChRmine in DAT+ (Cre-recombinase-expressing) dopamine neurons.
 
   VirusInjections:
     # 300 nL bilateral SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
+    # {construct_name} is filled at conversion time from the selected ViralVector.
     - name: snc_injection_left
       location: "Substantia nigra, compact part"
       hemisphere: left
@@ -102,7 +118,7 @@ Optogenetics:
       ml_in_mm: -1.25
       dv_in_mm: -4.2
       volume_in_uL: 0.3
-      description: "{volume_nL:.0f} nL left SNc injection of {construct_name} (Addgene #137160)."
+      description: "{volume_nL:.0f} nL left SNc injection of {construct_name}."
     - name: snc_injection_right
       location: "Substantia nigra, compact part"
       hemisphere: right
@@ -111,16 +127,17 @@ Optogenetics:
       ml_in_mm: 1.25
       dv_in_mm: -4.2
       volume_in_uL: 0.3
-      description: "{volume_nL:.0f} nL right SNc injection of {construct_name} (Addgene #137160)."
+      description: "{volume_nL:.0f} nL right SNc injection of {construct_name}."
 
   Effectors:
-    # ChRmine selectively expressed in Anxa1+ SNc dopamine neurons via Flp-dependent AAV.
+    # ChRmine-oScarlet expressed in SNc dopamine neurons via Cre/Flp-conditional AAV.
+    # Exact cell population depends on mouse line (Anxa1+ for Anxa1-Flp; DAT+ for DAT-Cre).
     - name: ChRmine_left
       label: ChRmine
       manufacturer: Addgene
       description: >-
         Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, left hemisphere. Expressed
-        selectively in Anxa1+ SNc dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice.
+        in SNc dopamine neurons via Cre/Flp-conditional AAV (construct per mouse line).
         Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
         train, 1 s bursts.
     - name: ChRmine_right
@@ -128,16 +145,16 @@ Optogenetics:
       manufacturer: Addgene
       description: >-
         Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, right hemisphere. Expressed
-        selectively in Anxa1+ SNc dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice.
+        in SNc dopamine neurons via Cre/Flp-conditional AAV (construct per mouse line).
         Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
         train, 1 s bursts.
 
   OptogeneticSitesTable:
     description: >-
-      Bilateral SNc optogenetic stimulation sites. Anxa1+ DANs express ChRmine-oScarlet
-      (AAV8-nEF-Coff/Fon, Addgene #137160) and are stimulated with a Cobalt
-      {excitation_lambda:.0f} nm laser via 200 μm optic fibers (RWD, R-FOC-BL200C-22NA,
-      NA 0.22).
+      Bilateral SNc optogenetic stimulation sites. SNc dopamine neurons express
+      ChRmine-oScarlet via Cre/Flp-conditional AAV (Addgene #137160 for Anxa1-Flp mice;
+      #137161 for DAT-Cre mice) and are stimulated with a Cobalt {excitation_lambda:.0f} nm
+      laser via 200 μm optic fibers (RWD, R-FOC-BL200C-22NA, NA 0.22).
     columns:
       - name: excitation_source
         description: "Laser used for optogenetic stimulation."

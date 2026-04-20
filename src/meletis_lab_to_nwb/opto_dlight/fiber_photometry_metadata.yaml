@@ -84,24 +84,38 @@ FiberPhotometry:
       and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
       filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
       to the 470 nm baseline and subtracted to remove shared artifacts (motion,
-      photobleaching). Acquired via interleaved 470/405 nm LED excitation at ~60 Hz
-      (Mantas et al. 2026, lines 917-919). Original signal column: {signal_column}.
+      photobleaching). Acquired via interleaved 470/405 nm LED excitation at ~60 Hz.
     table_region_description: "470 nm signal channel (dF/F)."
 
-  Indicator:
-    # dLight1.3b: genetically encoded dopamine sensor (Addgene plasmid #125560).
-    # Delivered as 500 nL unilateral injection of AAV5-CAG-dLight1.3b into the striatum
-    # (dCP: AP +0.74, ML ±1.5, DV -2.2; cCP: AP +0.38, ML +2.0, DV -2.9). Specs from
-    # Mantas et al. (2026), Viral and retrobead injections lines 628-629 and Implant
-    # placement lines 656-658.
-    name: indicator
-    manufacturer: Addgene
-    description: >-
-      Genetically encoded dopamine indicator dLight1.3b. Delivered via unilateral injection
-      of 500 nL AAV5-CAG-dLight1.3b (Addgene plasmid #125560) into the dorsal caudoputamen
-      (dCP; AP +0.74, ML ±1.5, DV -2.2) or central caudoputamen (cCP; AP +0.38, ML +2.0,
-      DV -2.9) for recording striatal dopamine release dynamics during ChRmine-mediated
-      optogenetic activation of Anxa1+ SNc dopamine neurons.
+  # Indicator is NOT set here — it is injected per-session by convert_session.py based on
+  # details.csv `line`, so the description correctly names the targeted neuron population.
+  # Both lines use the same AAV5-CAG-dLight1.3b sensor (Addgene #125560); only the
+  # description of which neurons are being studied changes.
+  Indicators:
+    anxa1-flp:
+      # dLight1.3b injected into dCP (dStr) or cCP (vStr); recording DA release driven by
+      # ChRmine activation of Anxa1+ (Flp+) SNc dopamine neurons.
+      name: dLight1.3b
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded dopamine indicator dLight1.3b (Addgene plasmid #125560). Delivered
+        via unilateral injection of 500 nL AAV5-CAG-dLight1.3b into the dorsal caudoputamen
+        (dCP; AP +0.74, ML ±1.5, DV -2.2) or central caudoputamen (cCP; AP +0.38, ML +2.0,
+        DV -2.9) for recording striatal dopamine release dynamics during ChRmine-mediated
+        optogenetic activation of Anxa1+ (Flp-recombinase-expressing) SNc dopamine neurons
+        in Anxa1-Flp mice.
+    dat-cre:
+      # dLight1.3b injected into dCP (dStr) or cCP (vStr); recording DA release driven by
+      # ChRmine activation of DAT+ (Cre+) SNc dopamine neurons.
+      name: dLight1.3b
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded dopamine indicator dLight1.3b (Addgene plasmid #125560). Delivered
+        via unilateral injection of 500 nL AAV5-CAG-dLight1.3b into the dorsal caudoputamen
+        (dCP; AP +0.74, ML ±1.5, DV -2.2) or central caudoputamen (cCP; AP +0.38, ML +2.0,
+        DV -2.9) for recording striatal dopamine release dynamics during ChRmine-mediated
+        optogenetic activation of DAT+ (Cre-recombinase-expressing) SNc dopamine neurons
+        in DAT-Cre mice.
 
   RawSignalFiberPhotometryResponseSeries:
     name: FiberPhotometryResponseSeries
