@@ -79,12 +79,9 @@ def session_to_nwb(
     converter = OptoDlightNWBConverter(source_data=source_data, verbose=verbose)
 
     metadata = converter.get_metadata()
-    date_str = ttl_file_path.stem.replace("oft_", "")
+    session_start_time = metadata["NWBFile"]["session_start_time"]
     t_zone = ZoneInfo("Europe/Stockholm")
-    session_date = datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(
-        tzinfo=t_zone,
-    )
-    metadata["NWBFile"]["session_start_time"] = session_date
+    session_start_time.replace(tzinfo=t_zone)
     metadata["NWBFile"]["session_id"] = session_id
 
     editable_metadata_path = Path(__file__).parent / "metadata.yaml"

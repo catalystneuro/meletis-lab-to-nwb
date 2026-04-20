@@ -1,5 +1,6 @@
 """DataInterface for optogenetic stimulation TTL data."""
 
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -50,7 +51,17 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         opto_metadata_path = Path(__file__).parent / "optogenetics_metadata.yaml"
         opto_metadata = load_dict_from_file(opto_metadata_path)
         metadata = dict_deep_update(metadata, opto_metadata)
+
+        session_start_time = self._get_session_start_time()
+        metadata["NWBFile"]["session_start_time"] = session_start_time
+
         return metadata
+
+    def _get_session_start_time(self) -> datetime:
+        df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
+        timestamps = pd.to_datetime(df["timestamp"])
+        session_start = timestamps.iloc[0]
+        return session_start
 
     def add_to_nwbfile(
         self,
@@ -64,7 +75,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
     ) -> None:
         df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
         timestamps = pd.to_datetime(df["timestamp"])
-        session_start = timestamps.iloc[0]
+        session_start = metadata["NWBFile"]["session_start_time"]
 
         # Convert to seconds relative to session start
         time_seconds = (timestamps - session_start).dt.total_seconds().values
