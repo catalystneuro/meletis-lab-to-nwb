@@ -19,8 +19,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
 
     Stimulation episodes are extracted by grouping consecutive True samples separated by gaps > 1s.
     Two classes of burst are excluded from both the ``OptogeneticSeries`` power trace and the
-    ``stimulation_episodes`` ``TimeIntervals`` (pending lab confirmation — see
-    ``open_questions.md`` items 1 and 1b):
+    ``stimulation_episodes`` ``TimeIntervals`` (pending lab confirmation):
     1. The first TTL burst, interpreted as an FP-acquisition sync pulse.
     2. Any additional burst whose duration exceeds ``max_stim_duration_s`` (default 1.5 s,
        well above the documented 1 s stimulation pulse and well below the observed ~5–10 s
