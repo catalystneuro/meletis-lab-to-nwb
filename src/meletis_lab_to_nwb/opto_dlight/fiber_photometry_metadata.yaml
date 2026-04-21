@@ -49,12 +49,30 @@ FiberPhotometry:
       405 nm Doric LED for dLight1.3b isosbestic reference channel. Power 15-25 µW.
       Delivered through DoricStudio V5 software.
 
-  FiberInsertion:
-    name: fiber_insertion
+  # FiberInsertion is NOT set here — it is injected per-session by convert_session.py based on
+  # details.csv `group` (dStr → dCP, vStr → cCP) with manuscript coordinates (Mantas et al. 2026,
+  # Implant placement, lines 652-654). ML sign is set to + (right hemisphere); adjust for left.
+  FiberInsertions:
+    dStr:
+      # dCP (dorsal caudoputamen) coordinates from Mantas et al. 2026.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.74
+      insertion_position_ml_in_mm: 1.5
+      insertion_position_dv_in_mm: -2.2
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
+    vStr:
+      # cCP (central caudoputamen) coordinates from Mantas et al. 2026.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.38
+      insertion_position_ml_in_mm: 2.0
+      insertion_position_dv_in_mm: -2.9
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
 
   OpticalFiber:
     # Optical fiber instance for photometry recording, linked to OpticalFiberModel via model=.
-    name: optical_fiber
+    name: optical_fiber_cpu
     description: >-
       Doric 400 µm ceramic ferrule fiber optic cannula for striatal dLight1.3b
       fiber photometry recording.

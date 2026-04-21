@@ -61,7 +61,7 @@ Optogenetics:
   OpticalFibers:
     # 200 µm ceramic ferrule, NA 0.22 (RWD Cat# R-FOC-BL200C-22NA). Implanted immediately
     # after virus injection (Implant placement, Mantas et al. 2026, lines 655-656).
-    - name: optical_fiber_left
+    - name: optical_fiber_snc_left
       hemisphere: left
       insertion_position_ap_in_mm: -3.09
       insertion_position_ml_in_mm: -1.25
@@ -70,7 +70,7 @@ Optogenetics:
       description: >-
         Left-hemisphere optical fiber for SNc optogenetic stimulation (ChRmine, 640 nm).
         Implanted immediately after virus injection.
-    - name: optical_fiber_right
+    - name: optical_fiber_snc_right
       hemisphere: right
       insertion_position_ap_in_mm: -3.09
       insertion_position_ml_in_mm: 1.25

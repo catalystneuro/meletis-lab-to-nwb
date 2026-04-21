@@ -335,7 +335,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
 
         # --- OptogeneticSitesTable: one row per hemisphere ---
         # Map fiber name suffix to effector
-        fiber_name_to_effector = {eff.name.replace("ChRmine_", "optical_fiber_"): eff for eff in effector_objects}
+        fiber_name_to_effector = {eff.name.replace("ChRmine_", "optical_fiber_snc_"): eff for eff in effector_objects}
 
         sites_table_meta = opto_meta.get("OptogeneticSitesTable", {})
         sites_table = OptogeneticSitesTable(

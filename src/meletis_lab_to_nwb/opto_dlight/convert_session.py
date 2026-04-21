@@ -118,15 +118,21 @@ def session_to_nwb(
         date_of_birth=date_of_birth,
     )
 
-    # Override per-session recording location (Allen Atlas names)
+    # Override per-session recording location (Allen Atlas names) and fiber insertion coordinates.
+    group = details_row["group"]
     group_names_to_locations = {
-        "dStr": "Caudoputamen",
-        "vStr": "Nucleus accumbens",
+        "dStr": "Dorsal caudoputamen",
+        "vStr": "Central caudoputamen",
     }
-    metadata["FiberPhotometry"]["location"] = group_names_to_locations.get(
-        details_row["group"],
-        "unknown",
-    )
+    metadata["FiberPhotometry"]["location"] = group_names_to_locations.get(group, "unknown")
+
+    fiber_insertions = metadata["FiberPhotometry"].get("FiberInsertions", {})
+    if group not in fiber_insertions:
+        raise ValueError(
+            f"Unknown group '{group}' — no FiberInsertion entry in fiber_photometry_metadata.yaml. "
+            f"Known groups: {list(fiber_insertions.keys())}"
+        )
+    metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[group]
 
     converter.run_conversion(
         metadata=metadata,

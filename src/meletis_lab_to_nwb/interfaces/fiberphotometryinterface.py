@@ -178,7 +178,17 @@ class FiberPhotometryInterface(BaseDataInterface):
 
         of_meta = fp_meta.get("OpticalFiber", {})
         fi_meta = fp_meta.get("FiberInsertion", {})
-        fiber_insertion = FiberInsertion(name=fi_meta.get("name"))
+        fi_kwargs = dict(name=fi_meta.get("name", "fiber_insertion"))
+        for coord_key in (
+            "insertion_position_ap_in_mm",
+            "insertion_position_ml_in_mm",
+            "insertion_position_dv_in_mm",
+            "position_reference",
+            "hemisphere",
+        ):
+            if (val := fi_meta.get(coord_key)) is not None:
+                fi_kwargs[coord_key] = val
+        fiber_insertion = FiberInsertion(**fi_kwargs)
         optical_fiber = OpticalFiber(
             name=of_meta.get("name"),
             description=of_meta.get("description") or "",
@@ -192,9 +202,9 @@ class FiberPhotometryInterface(BaseDataInterface):
             description=pd_meta.get("description") or "",
         )
 
-        nwbfile.add_device(optical_fiber)
         nwbfile.add_device(excitation_source_signal)
         nwbfile.add_device(excitation_source_isosbestic)
+        nwbfile.add_device(optical_fiber)
         nwbfile.add_device(photodetector)
 
         # --- Indicator ---
