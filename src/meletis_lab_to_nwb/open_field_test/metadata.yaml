@@ -1,0 +1,41 @@
+NWBFile:
+  keywords:
+    - open field test
+    - locomotion
+    - dopamine
+    - Parkinson's disease
+    - 6-OHDA
+    - Anxa1-TetTox
+    - mitopark
+    - DeepLabCut
+    - VAME
+    - pose estimation
+    - behavioral motifs
+    - fiber photometry
+  related_publications:
+    - doi:10.1101/2024.12.22.629963
+  experiment_description: |
+    Open field test (OFT) for studying locomotion and behavioral motifs in mouse models
+    of Parkinson's disease. Mice explored a 40x40 cm arena with a transparent floor,
+    recorded from below at 30 fps using an Oryx 10GigE camera (Hamamatsu Photonics).
+    Pose estimation was performed using DeepLabCut (6 keypoints: snout, front paws,
+    back paws, tail base). Behavioral motifs were identified using VAME unsupervised
+    classification. A subset of sessions included fiber photometry recording of
+    dopamine/calcium signals (470 nm excitation, GCaMP8m or dLight1.3b indicators).
+    Seven sub-experiments were conducted: oft_6OHDA, oft_anti_anxa1, oft_fp,
+    oft_mitopark_10-11weeks, oft_mitopark_15-18weeks, oft_Tetx, and
+    oft_6ohda_tailStriatum.
+  session_description: |
+    Open field test session. A mouse explored a 40x40 cm arena recorded from below
+    at 30 fps. Pose estimation via DeepLabCut and behavioral classification via VAME
+    were applied to the video data.
+  institution: Karolinska Institutet
+  lab: Meletis
+  experimenter:
+    - Mantas, Ioannis
+    - Contestabile, Alessandro
+    - Skara, Vasiliki
+Subject:
+  species: Mus musculus
+  strain: C57BL/6N
+  description: Mouse on C57BL/6N background, aged 2-6 months at time of experiment.
