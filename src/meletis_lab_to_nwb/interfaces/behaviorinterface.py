@@ -15,6 +15,8 @@ from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timest
 from neuroconv.tools.nwb_helpers import get_module
 from neuroconv.utils import DeepDict, calculate_regular_series_rate, dict_deep_update, load_dict_from_file
 from pynwb import NWBFile
+from pynwb.base import TimeSeriesReference, TimeSeriesReferenceVectorData
+from pynwb.behavior import Position, SpatialSeries
 
 # Canonical column set. Raw CSVs sometimes encode pixel-distance columns with dots
 # instead of parentheses; we normalize to this schema before writing.
@@ -78,20 +80,31 @@ class ReachingBehaviorInterface(BaseDataInterface):
 
     Events are stored in an ``AnnotatedEventsTable`` (ndx-events 0.2.2) named
     ``reaching_events``: one row per event type with ragged ``event_times`` and ragged
-    per-event metadata columns (paw, frame, pixel coordinates, distances — NaN for
+    per-event metadata columns (paw, frame, target pixel coordinates, distances — NaN for
     sessions without rich annotations).
+
+    When rich paw-coordinate annotations are present, paw x/y positions are additionally
+    stored as a ``SpatialSeries`` (``PawPosition/paw_position``) in the behavior module.
+    The table carries a ragged ``paw_position_ref`` column of ``TimeSeriesReference``
+    entries that point to the corresponding sample in that ``SpatialSeries``.
     """
 
     keywords = ("behavior", "reaching", "water reward")
 
-    def __init__(self, file_path: str | Path, video_file_path: str | Path, verbose: bool = True):
+    def __init__(
+        self,
+        file_path: str | Path,
+        video_file_path: str | Path,
+        metadata_yaml_path: str | Path = None,
+        verbose: bool = True,
+    ):
+        self.metadata_yaml_path = metadata_yaml_path
         super().__init__(file_path=file_path, video_file_path=video_file_path, verbose=verbose)
 
     def get_metadata(self) -> DeepDict:
         metadata = super().get_metadata()
-        behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"
-        if behavior_metadata_path.exists():
-            behavior_metadata = load_dict_from_file(behavior_metadata_path)
+        if self.metadata_yaml_path.exists():
+            behavior_metadata = load_dict_from_file(self.metadata_yaml_path)
             metadata = dict_deep_update(metadata, behavior_metadata)
         return metadata
 
@@ -144,13 +157,30 @@ class ReachingBehaviorInterface(BaseDataInterface):
         if df.empty:
             return
 
-        # TODO: add paw as spatial series
-
         timestamps = get_video_timestamps(file_path=self.source_data["video_file_path"])
         if (frame_rate := calculate_regular_series_rate(timestamps)) is not None:
             df["_event_time"] = df["frame"].to_numpy(dtype=int) / frame_rate
         else:
             raise ValueError("Cannot determine frame rate for event time conversion, video timestamps are irregular.")
+
+        # Sort globally by time so SpatialSeries row index == position in sorted df.
+        df = df.sort_values("_event_time").reset_index(drop=True)
+
+        # Build SpatialSeries for paw position when coordinate data is present.
+        paw_xy = df[["paw.x", "paw.y"]].to_numpy(dtype=float)  # Nx2
+        paw_spatial_series = None
+        if not np.all(np.isnan(paw_xy)):
+            paw_spatial_series = SpatialSeries(
+                name="paw_position",
+                description=("Paw pixel coordinates [x, y] at each annotated reaching event. "),
+                data=paw_xy,
+                timestamps=df["_event_time"].to_numpy(dtype=float),
+                unit="pixels",
+                reference_frame="Video frame origin at top-left corner; x increases right; y increases down.",
+            )
+
+        # Map event_time → SpatialSeries row index for building TimeSeriesReferences.
+        ts_to_spatial_idx: dict[float, int] = {float(ts): i for i, ts in enumerate(df["_event_time"])}
 
         meta = (metadata or {}).get("Behavior", {}).get("ReachingEvents", {})
         table_name = meta.get("name", "reaching_events")
@@ -186,11 +216,10 @@ class ReachingBehaviorInterface(BaseDataInterface):
         paws_ragged: list[list[str]] = []
         target_x_ragged: list[list[float]] = []
         target_y_ragged: list[list[float]] = []
-        paw_x_ragged: list[list[float]] = []
-        paw_y_ragged: list[list[float]] = []
         reference_px_ragged: list[list[float]] = []
         distance_px_ragged: list[list[float]] = []
         distance_cm_ragged: list[list[float]] = []
+        paw_refs_ragged: list[list[TimeSeriesReference]] = []
 
         for event_type, group in grouped:
             group = group.sort_values("_event_time")
@@ -203,11 +232,18 @@ class ReachingBehaviorInterface(BaseDataInterface):
             paws_ragged.append(group["paw"].astype(str).tolist())
             target_x_ragged.append(group["target.x"].astype(float).tolist())
             target_y_ragged.append(group["target.y"].astype(float).tolist())
-            paw_x_ragged.append(group["paw.x"].astype(float).tolist())
-            paw_y_ragged.append(group["paw.y"].astype(float).tolist())
             reference_px_ragged.append(group["reference(px)"].astype(float).tolist())
             distance_px_ragged.append(group["distance(px)"].astype(float).tolist())
             distance_cm_ragged.append(group["distance(cm)"].astype(float).tolist())
+            if paw_spatial_series is not None:
+                paw_refs_ragged.append(
+                    [
+                        TimeSeriesReference(
+                            idx_start=ts_to_spatial_idx[float(t)], count=1, timeseries=paw_spatial_series
+                        )
+                        for t in group["_event_time"]
+                    ]
+                )
 
         reach_events.add_column(
             name="frame",
@@ -240,18 +276,23 @@ class ReachingBehaviorInterface(BaseDataInterface):
             data=target_y_ragged,
             index=True,
         )
-        reach_events.add_column(
-            name="paw_x",
-            description=_col_desc("paw_x", "Paw x-position in pixels for each event (NaN if not annotated)."),
-            data=paw_x_ragged,
-            index=True,
-        )
-        reach_events.add_column(
-            name="paw_y",
-            description=_col_desc("paw_y", "Paw y-position in pixels for each event (NaN if not annotated)."),
-            data=paw_y_ragged,
-            index=True,
-        )
+        if paw_spatial_series is not None:
+            # TimeSeriesReference is a namedtuple; HDMF's auto-index check mistakes it for
+            # a nested array. Provide the cumulative index explicitly to bypass that check.
+            flat_refs = [ref for group in paw_refs_ragged for ref in group]
+            cumulative_idx = np.cumsum([len(g) for g in paw_refs_ragged]).tolist()
+            reach_events.add_column(
+                name="paw_position_ref",
+                description=_col_desc(
+                    "paw_position_ref",
+                    "Reference to the paw_position SpatialSeries sample for this event. "
+                    "idx_start is the row index in processing/behavior/PawPosition/paw_position.",
+                ),
+                data=flat_refs,
+                index=cumulative_idx,
+                col_cls=TimeSeriesReferenceVectorData,
+                check_ragged=False,
+            )
         reach_events.add_column(
             name="reference_px",
             description=_col_desc(
@@ -279,4 +320,6 @@ class ReachingBehaviorInterface(BaseDataInterface):
         )
 
         behavior_module = get_module(nwbfile, name="behavior", description="processed behavioral data")
+        if paw_spatial_series is not None:
+            behavior_module.add(Position(name="PawPosition", spatial_series=[paw_spatial_series]))
         behavior_module.add(reach_events)
