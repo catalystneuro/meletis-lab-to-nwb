@@ -98,7 +98,7 @@ class ReachingBehaviorInterface(BaseDataInterface):
         metadata_yaml_path: str | Path = None,
         verbose: bool = True,
     ):
-        self.metadata_yaml_path = metadata_yaml_path
+        self.metadata_yaml_path = Path(metadata_yaml_path)
         super().__init__(file_path=file_path, video_file_path=video_file_path, verbose=verbose)
 
     def get_metadata(self) -> DeepDict:

@@ -1,0 +1,64 @@
+Behavior:
+  ReachingEvents:
+    name: reaching_events
+    description: |
+      Manually-scored reaching attempts from the forelimb reaching-for-water test.
+      Stored as an ndx-events 0.2.2 AnnotatedEventsTable: one row per event type (e.g.
+      correct / miss / empty / drop / semidrop / unknown), with a ragged 'event_times'
+      column holding the times at which each event occurred (in seconds relative to
+      session_start_time, which equals the video start time), and ragged per-event
+      metadata columns (paw, frame, target/paw pixel coordinates, distances). Event
+      times are computed from the annotated video frame index assuming the recording
+      frame rate specified on the interface (default 60 fps, matching the FLIR camera
+      used for this experiment). Sessions in which the mouse did not perform any
+      attempts have no reaching_events table.
+    EventTypes:
+      correct:
+        description: |
+          Successful reach: paw contacted the spout and the water droplet was retrieved.
+          Encoded as 'C' in the raw CSVs.
+      miss:
+        description: |
+          Reach attempt that did not contact the spout. Encoded as 'M' / 'missed' in
+          the raw CSVs.
+      empty:
+        description: |
+          Reach directed at an empty spout (no water droplet available). Encoded as 'E'
+          in the raw CSVs.
+      drop:
+        description: |
+          Water droplet was grasped but dropped before retrieval.
+      semidrop:
+        description: |
+          Partial drop: some of the water was retrieved, some was lost. Raw values
+          'semidrop' / 'semi-drop' are normalized to 'semidrop'.
+      unknown:
+        description: |
+          Reach whose outcome was not annotated in the source CSV or whose code was
+          unrecognized.
+    Columns:
+      paw:
+        description: |
+          Body part that contacted (or attempted to contact) the spout on this reach:
+          'left', 'right', 'mouth', or 'unknown'. Entries encoded as 'L'/'R' in the raw
+          CSVs are normalized to 'left'/'right'.
+      frame:
+        description: Annotated video frame index (0-based) on the lateral behavior video.
+      target_x:
+        description: Spout (reach target) x-position in video pixels.
+      target_y:
+        description: Spout (reach target) y-position in video pixels.
+      paw_position_ref:
+        description: |
+          Reference to the paw_position SpatialSeries sample for this event (only present
+          for sessions with paw coordinate annotations). idx_start is the row index into
+          processing/behavior/PawPosition/paw_position, which stores [x, y] pixel
+          coordinates for all events in ascending time order.
+      reference_px:
+        description: |
+          Pixel reference distance used to convert pixel measurements to cm for this
+          session (reflects camera zoom/distance calibration).
+      distance_px:
+        description: Euclidean distance from the annotated paw position to the spout target, in pixels.
+      distance_cm:
+        description: Euclidean distance from the annotated paw position to the spout target, in centimeters.

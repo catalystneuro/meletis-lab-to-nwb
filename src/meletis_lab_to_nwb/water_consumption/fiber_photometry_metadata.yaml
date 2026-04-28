@@ -1,0 +1,133 @@
+# TODO: confirm fiber photometry metadata with Alessandro
+FiberPhotometry:
+  # Session-specific indicator_label and location are overridden in convert_session.py
+  # based on the `group` column in details.csv (fp_dat / fp_anxa1 → GCaMP in SN DAN
+  # cell bodies; dLight_dStr / dLight_vStr → dLight1.3b in striatal terminals).
+  # Placeholder defaults below are for the dLight-in-striatum case; see open_questions.md.
+  location: Caudoputamen
+  indicator_label: dLight1.3b
+  excitation_wavelength_in_nm: 470.0
+  emission_wavelength_in_nm: 525.0
+
+  ExcitationSourceModel_470nm:
+    # 470 nm LED for signal channel. Doric system (ref 101 in Mantas et al. 2026).
+    # Power and model number not reported in the manuscript for the reaching-task cohort.
+    name: doric_470nm_led_model
+    manufacturer: Doric
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    # wavelength_range_in_nm is computed from excitation_wavelength_in_nm in code.
+
+  ExcitationSourceModel_405nm:
+    # 405 nm LED for isosbestic reference channel.
+    name: doric_405nm_led_model
+    manufacturer: Doric
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    wavelength_in_nm: 405.0
+
+  OpticalFiberModel:
+    # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric (striatal implants).
+    # For fp_dat / fp_anxa1 (SN cell-body recordings) the same Doric 400 µm cannula is
+    # used per the lab's standard setup, but the manuscript does not report a distinct
+    # model number for SN implants — see open_questions.md.
+    name: doric_400um_cannula_model
+    manufacturer: Doric
+    numerical_aperture: 0.22
+    core_diameter_in_um: 400.0
+    ferrule_name: "ceramic ferrule"
+
+  ExcitationSourceSignal:
+    name: excitation_source_signal
+    description: >-
+      470 nm Doric LED for fiber photometry signal-channel excitation. Interleaved with
+      the 405 nm isosbestic reference via DoricStudio V5 software.
+
+  ExcitationSourceIsosbestic:
+    name: excitation_source_isosbestic
+    description: >-
+      405 nm Doric LED for fiber photometry isosbestic-reference excitation.
+
+  # FiberInsertion is injected per-session by convert_session.py based on details.csv `group`.
+  # CPu coordinates are the same across all FP experiments (Mantas et al. 2026, Implant
+  # placement, p.15). SNc coordinates for fp_dat/fp_anxa1 are not reported — see LAB_REVIEW W2.
+  FiberInsertions:
+    dLight_dStr:
+      # dCP (dorsal caudoputamen) from Mantas et al. 2026, Implant placement.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.74
+      insertion_position_ml_in_mm: 1.5
+      insertion_position_dv_in_mm: -2.2
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
+    dLight_vStr:
+      # cCP (central caudoputamen) — same coordinates as opto+dLight vStr sessions.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.38
+      insertion_position_ml_in_mm: 2.0
+      insertion_position_dv_in_mm: -2.9
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
+    # fp_dat and fp_anxa1: SNc FP fiber coordinates not reported in manuscript — see LAB_REVIEW W2.
+
+  OpticalFiber:
+    name: optical_fiber
+    description: >-
+      Doric 400 µm ceramic ferrule fiber optic cannula for fiber photometry recording.
+      Per-session implantation target (striatum vs SN) is reflected in the linked
+      OptogeneticStimulusSite/FiberPhotometryTable location column.
+
+  Photodetector:
+    name: photodetector
+    description: "Photodetector for fiber photometry signal and reference channels."
+
+  ProcessingModule:
+    name: ophys
+    description: >-
+      Processed optical physiology data. Contains motion-corrected dF/F fluorescence
+      signals from the reaching-task fiber photometry recordings.
+
+  FiberPhotometryLabMetaData:
+    name: fiber_photometry
+
+  FiberPhotometryTable:
+    name: fiber_photometry_table
+    description: "Fiber photometry metadata table for the reaching task."
+
+  DfOverFFiberPhotometryResponseSeries:
+    name: DfOverFFiberPhotometryResponseSeries
+    description: >-
+      Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
+      Preprocessing in DoricStudio V5: raw 470 nm
+      and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
+      filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
+      to the 470 nm baseline and subtracted to remove shared artifacts (motion,
+      photobleaching).
+    table_region_description: "470 nm signal channel (dF/F)."
+
+  Indicator:
+    # Default values apply to dLight_dStr and dLight_vStr groups (dLight1.3b in striatum).
+    # For fp_dat and fp_anxa1 groups, convert_session.py overrides name, manufacturer, and
+    # description via GROUP_FP_CONFIG:
+    #   fp_dat    → jGCaMP8m, pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE (Addgene #162381), DAT-Cre, SN
+    #   fp_anxa1  → jGCaMP8m, AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp (VVF Zurich),
+    #               Anxa1-Flp, SN
+    name: dLight1.3b
+    manufacturer: Addgene
+    description: >-
+      Genetically encoded dopamine indicator dLight1.3b (AAV5-CAG-dLight1.3b, Addgene
+      plasmid #125560). Delivered via unilateral striatal injection into the dorsal
+      caudoputamen (dCP; dLight_dStr group) or central caudoputamen (cCP; dLight_vStr group).
+
+  RawSignalFiberPhotometryResponseSeries:
+    name: FiberPhotometryResponseSeries
+    description: >-
+      Raw 470 nm fluorescence signal from fiber photometry acquisition (DoricStudio V5).
+    table_region_description: "470 nm signal channel (raw fluorescence)."
+
+  RawReferenceFiberPhotometryResponseSeries:
+    name: FiberPhotometryResponseSeriesIsosbestic
+    description: >-
+      Raw 405 nm isosbestic reference fluorescence from fiber photometry acquisition
+      (DoricStudio V5).
+    table_region_description: "405 nm isosbestic control (raw fluorescence)."
