@@ -15,7 +15,6 @@ and recording-site notes). The :meth:`add_to_nwbfile` implementation is shared.
 
 from __future__ import annotations
 
-from abc import abstractmethod
 from pathlib import Path
 
 import pandas as pd
@@ -36,7 +35,7 @@ from ndx_ophys_devices import (
 )
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
-from neuroconv.utils import DeepDict
+from neuroconv.utils import DeepDict, dict_deep_update, load_dict_from_file
 from pynwb import NWBFile
 
 
@@ -62,28 +61,22 @@ class FiberPhotometryInterface(BaseDataInterface):
 
     keywords = ("fiber photometry", "fluorescence", "dopamine")
 
-    def __init__(self, file_path: str | Path, raw_file_path: str | Path | None = None, verbose: bool = True):
+    def __init__(
+        self,
+        file_path: str | Path,
+        raw_file_path: str | Path | None = None,
+        metadata_yaml_path: str | Path | None = None,
+        verbose: bool = True,
+    ):
+        self.metadata_yaml_path = Path(metadata_yaml_path)
         super().__init__(file_path=file_path, raw_file_path=raw_file_path, verbose=verbose)
 
-    @abstractmethod
     def get_metadata(self) -> DeepDict:
-        """Return metadata dict populated from the conversion-specific YAML.
-
-        Subclasses must implement this method to load their own
-        ``fiber_photometry_metadata.yaml`` and deep-merge it onto the base metadata::
-
-            def get_metadata(self) -> DeepDict:
-                metadata = super().get_metadata()
-                fp_metadata = load_dict_from_file(
-                    Path(__file__).parent / "fiber_photometry_metadata.yaml"
-                )
-                return dict_deep_update(metadata, fp_metadata)
-
-        Calling ``super().get_metadata()`` delegates to
-        :meth:`~neuroconv.basedatainterface.BaseDataInterface.get_metadata`, which
-        returns the base NWBFile/Subject skeleton.
-        """
-        return BaseDataInterface.get_metadata(self)
+        metadata = super().get_metadata()
+        if self.metadata_yaml_path.exists():
+            editable_metadata = load_dict_from_file(self.metadata_yaml_path)
+            metadata = dict_deep_update(metadata, editable_metadata)
+        return metadata
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict | None = None, stub_test: bool = False) -> None:
         """Write fiber photometry data to an NWB file.

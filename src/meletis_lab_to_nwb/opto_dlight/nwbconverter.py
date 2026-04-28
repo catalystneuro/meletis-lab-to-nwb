@@ -2,8 +2,8 @@
 
 from neuroconv import NWBConverter
 
-from .fiberphotometryinterface import FiberPhotometryInterface
 from .optogeneticsinterface import OptogeneticsTTLInterface
+from ..interfaces import FiberPhotometryInterface
 
 
 class OptoDlightNWBConverter(NWBConverter):

@@ -1,3 +1,2 @@
-from .fiberphotometryinterface import FiberPhotometryInterface
 from .optogeneticsinterface import OptogeneticsTTLInterface
 from .nwbconverter import OptoDlightNWBConverter
