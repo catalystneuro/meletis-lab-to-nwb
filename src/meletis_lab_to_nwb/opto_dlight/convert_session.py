@@ -55,7 +55,11 @@ def session_to_nwb(
     session_id = video_name.replace("_", "-")
     nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}.nwb"
 
-    fp_source = dict(file_path=str(signal_file_path))
+    fp_metadata_yaml_path = Path(__file__).parent / "fiber_photometry_metadata.yaml"
+    fp_source = dict(
+        file_path=str(signal_file_path),
+        metadata_yaml_path=fp_metadata_yaml_path,
+    )
     if raw_signal_file_path is not None:
         fp_source["raw_file_path"] = str(raw_signal_file_path)
 
