@@ -1,7 +1,15 @@
 # Notes concerning the reaching-test conversion
 
 ## Data Location
-`/Volumes/T9/data/Meletis/reaching_test/`
+`.../Meletis/reaching_test/`
+
+## Experiment summary
+
+Forelimb reaching-for-water task to quantify motor skill in mice with selective dopamine-neuron manipulations.
+Two experimental arms: (1) chronic silencing of Anxa1+ SNc DANs via Flp-dependent tetanus toxin (groups tet vs ctrl);
+(2) optogenetic silencing via Archaerhodopsin (groups arch_anxa1 vs arch_ctrl), with multiple test phases and light
+conditions (on / on_after_first_reach / off). Corresponds to Fig. 7E–N and Supplementary Fig. 15.
+
 
 ## File Structure
 ```
@@ -111,19 +119,20 @@ reaching_test/
   **Please confirm:** Are the outcome definitions in the reaching-test annotations the same as in
   the water-consumption annotations?
 
-- **R3 — `on_after_first_reach` light condition**: The `light` column for the Arch cohort contains
-  `on_after_first_reach`, meaning the silencing laser was turned on after the first reach of the
-  session. The exact trigger mechanism (manual, automated, time-locked?) is unclear from the data.
-  **Please clarify:** How was the laser onset triggered in the `on_after_first_reach` condition —
-  manually by the experimenter after observing the first reach on video, or via an automated
-  real-time detection system?
+- ~~**R3 — `on_after_first_reach` light condition**~~ ✓ **Resolved.** The laser was activated
+  immediately after the mouse's first reach attempt of the session. Trigger was **manual** —
+  the experimenter activated the laser upon observing the first reach.
 
-- **Virus constructs and injection coordinates**: The `metadata.yaml` session description references
-  Flp-dependent TetTox and Arch constructs but does not record AAV serotype, titre, injection
-  volume, or stereotaxic coordinates. These are referenced in the manuscript (Mantas et al.) but
-  are not available in `details.csv`.
-  **To request:** Virus construct details (AAV serotype, plasmid ID/Addgene #, titre) and
-  stereotaxic injection coordinates (AP, ML, DV from bregma) for both cohorts.
+- ~~**Virus constructs and injection coordinates**~~ ✓ **Partially resolved.** Virus constructs
+  confirmed by the lab and cross-referenced with Mantas et al. 2026 (lines 629–636):
+  - **TeTx cohort**: AAV9-hSyn1-chl-dFRT-EGFP_2A_Flag_TeTxLC(rev)-dFRT (VVF Zurich), 300 nL
+    bilateral SNc injection
+  - **Arch cohort**: AAV8-nEF-Coff/Fon-Arch3.3-p2a-eYFP (Addgene #137150), 300 nL bilateral
+    SNc injection
+  Both constructs are now in `metadata.yaml` (experiment_description) and `convert_session.py`
+  (GROUP_DESCRIPTIONS).
+  **Still pending:** AAV titre (vg/mL) and precise stereotaxic injection coordinates (AP, ML, DV
+  from bregma) for both cohorts — not reported in the manuscript for these specific experiments.
 
 ## Known Issues / Notes
 

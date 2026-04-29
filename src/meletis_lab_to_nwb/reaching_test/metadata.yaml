@@ -10,19 +10,18 @@ NWBFile:
     - doi:10.1101/2024.12.22.629963
   experiment_description: |
     Forelimb reaching test for water reward used to quantify motor skill in mouse models
-    of selective dopamine-neuron manipulation (corresponds to Figure 7E-N and
-    Supplementary Figure 15 in Mantas et al.). Water-restricted mice in a transparent
+    of selective dopamine-neuron manipulation. Water-restricted mice in a transparent
     reaching chamber reach through a slit to a pump-controlled waterspout. Sessions are
     recorded laterally at 60 fps with a FLIR camera. Two experimental arms are included:
     (1) chronic silencing of Anxa1+ SNc dopamine neurons by Flp-dependent tetanus toxin
-    light chain (group `tet` vs. littermate `ctrl`) and (2) optogenetic silencing of
-    Anxa1+ SNc dopamine neurons with Archaerhodopsin (group `arch_anxa1` vs.
-    `arch_ctrl`), with multiple test days per mouse (`phase` in details.csv: test1,
-    test2, test4, test8) and, for the Arch cohort, different light conditions (`light`:
-    on, on_after_first_reach, off). Each attempt is scored manually from the lateral
+    light chain (group `tet` vs. littermate `ctrl`; virus: AAV9-hSyn1-chl-dFRT-EGFP_2A_Flag_
+    TeTxLC(rev)-dFRT, VVF Zurich, 300 nL bilateral SNc) and (2) optogenetic silencing of
+    Anxa1+ SNc dopamine neurons with Archaerhodopsin (group `arch_anxa1` vs. `arch_ctrl`;
+    virus: AAV8-nEF-Coff/Fon-Arch3.3-p2a-eYFP, Addgene #137150, 300 nL bilateral SNc),
+    with multiple test days per mouse
+    and, for the Arch cohort, different light conditions. Each attempt is scored manually from the lateral
     video; pose estimation of the snout, tongue, paw, wrist, elbow, mouth, spout, and an
-    extra reference keypoint was produced with DeepLabCut
-    (DLC_resnet50_reaching_trainJun9shuffle1_100000).
+    extra reference keypoint was produced with DeepLabCut.
   session_description: |
     Forelimb reaching-for-water session. The lateral behavior video is referenced
     externally and accompanied by manual reach-attempt annotations (when the mouse

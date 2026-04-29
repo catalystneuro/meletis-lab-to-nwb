@@ -13,20 +13,26 @@ from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
 # details.csv. Keys match the ``group`` column of details.csv.
 GROUP_DESCRIPTIONS = {
     "tet": (
-        "Anxa1+ SNc dopamine neurons chronically silenced via Flp-dependent tetanus "
-        "toxin light chain in Anxa1-Flp mice (tet cohort)."
+        "Anxa1+ SNc dopamine neurons chronically silenced via Flp-dependent tetanus toxin light "
+        "chain in Anxa1-Flp mice (tet cohort). Virus: AAV9-hSyn1-chl-dFRT-EGFP_2A_Flag_TeTxLC"
+        "(rev)-dFRT (VVF Zurich), 300 nL bilateral SNc injection."
     ),
-    "ctrl": ("Littermate control for the tetanus-toxin cohort (no TetTox expression; " "Anxa1-Flp line)."),
+    "ctrl": ("Littermate control for the tetanus-toxin cohort (no TetTox expression; Anxa1-Flp line)."),
     "arch_anxa1": (
-        "Anxa1+ SNc dopamine neurons optogenetically silenced with Archaerhodopsin " "(Anxa1-Flp, Arch cohort)."
+        "Anxa1+ SNc dopamine neurons optogenetically silenced with Archaerhodopsin (Anxa1-Flp, "
+        "Arch cohort). Virus: AAV8-nEF-Coff/Fon-Arch3.3-p2a-eYFP (Addgene #137150), 300 nL "
+        "bilateral SNc injection."
     ),
-    "arch_ctrl": ("Littermate control for the Archaerhodopsin cohort (no Arch expression; " "Anxa1-Flp line)."),
+    "arch_ctrl": ("Littermate control for the Archaerhodopsin cohort (no Arch expression; Anxa1-Flp line)."),
 }
 
 # Friendly labels for the ``light`` column (Arch cohort only).
 LIGHT_DESCRIPTIONS = {
     "on": "Optogenetic silencing laser on for the entire session.",
-    "on_after_first_reach": ("Optogenetic silencing laser turned on after the first reach attempt of the session."),
+    "on_after_first_reach": (
+        "Optogenetic silencing laser activated immediately after the mouse's first reach attempt "
+        "of the session. Laser onset was triggered manually by the experimenter."
+    ),
     "off": "Optogenetic silencing laser off for the entire session.",
     "-": "Not applicable (non-optogenetic cohort).",
 }
