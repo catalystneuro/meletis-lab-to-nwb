@@ -1,8 +1,10 @@
 FiberPhotometry:
   # Session-specific indicator_label and location are overridden in convert_session.py
-  # based on the `group` column in details.csv, matching the same group keys used in the
-  # water-consumption conversion (dLight_dStr / dLight_vStr → dLight1.3b in striatum;
-  # fp_dat / fp_anxa1 → jGCaMP8m in SN cell bodies).
+  # based on the `group` column in details.csv:
+  #   dLight_dStr              → dLight1.3b, fiber in dCP (confirmed by lab)
+  #   dLight_vStr              → dLight1.3b, fiber in cCP (confirmed by lab)
+  #   fp_dat / dat-cre         → jGCaMP8m axonal signals in dCP (confirmed by lab)
+  #   fp_anxa1 / anxa1-flp     → jGCaMP8m axonal signals in dCP (confirmed by lab)
   # Placeholder defaults below are for the dLight-in-striatum case.
   location: Caudoputamen
   indicator_label: dLight1.3b
@@ -47,34 +49,36 @@ FiberPhotometry:
     description: >-
       405 nm Doric LED for fiber photometry isosbestic-reference excitation (15-25 µW).
 
-  # FiberInsertion is injected per-session by convert_session.py based on details.csv `group`.
-  # CPu coordinates are the same across all FP experiments (Mantas et al. 2026, Implant
-  # placement, p.15). SNc coordinates for fp_dat/fp_anxa1 are not reported — see LAB_REVIEW W2.
+  # FiberInsertion is injected per-session by convert_session.py via GROUP_FP_CONFIG
+  # ["fiber_insertion_key"] → dCP or cCP. All groups confirmed by the lab:
+  #   dLight_dStr / fp_dat / fp_anxa1 / dat-cre / anxa1-flp → dCP
+  #   dLight_vStr → cCP
+  # (Mantas et al. 2026, Implant placement, lines 656-658). Right hemisphere for all sessions.
   FiberInsertions:
-    dLight_dStr:
-      # dCP (dorsal caudoputamen) from Mantas et al. 2026, Implant placement.
+    dCP:
+      # Dorsal caudoputamen. Confirmed by lab.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.74
       insertion_position_ml_in_mm: 1.5
       insertion_position_dv_in_mm: -2.2
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
-    dLight_vStr:
-      # cCP (central caudoputamen) — same coordinates as opto+dLight vStr sessions.
+    cCP:
+      # Central caudoputamen. Confirmed by lab.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.38
       insertion_position_ml_in_mm: 2.0
       insertion_position_dv_in_mm: -2.9
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
-    # fp_dat and fp_anxa1: SNc FP fiber coordinates not reported in manuscript — see LAB_REVIEW W2.
 
   OpticalFiber:
-    name: optical_fiber
+    name: optical_fiber_cpu
     description: >-
-      Doric 400 µm ceramic ferrule fiber optic cannula for fiber photometry recording.
-      Per-session implantation target (striatum vs SN) is reflected in the linked
-      FiberPhotometryTable location column.
+      Doric 400 µm ceramic ferrule fiber optic cannula implanted in the dorsal caudoputamen
+      (dCP) or central caudoputamen (cCP). For fp_dat/fp_anxa1/dat-cre/anxa1-flp groups the
+      fiber records axonal GCaMP signals from SN→dCP projections; for dLight groups it records
+      dopamine release. Per-session location is stored in the FiberPhotometryTable.
 
   Photodetector:
     name: photodetector
@@ -120,59 +124,54 @@ FiberPhotometry:
         caudoputamen (dCP; Mantas et al. 2026, lines 628-629 and 656-658). Records
         dopamine release dynamics during open field exploration.
     dLight_vStr:
-      # dLight1.3b injected into central caudoputamen (cCP); records DA release during OFT.
-      # Note: `vStr` in details.csv likely corresponds to cCP (central caudoputamen) per
-      # manuscript. See LAB_REVIEW.md Q3.
+      # dLight1.3b in central caudoputamen (cCP). Confirmed by lab.
       name: dLight1.3b
       manufacturer: Addgene
       description: >-
         Genetically encoded dopamine indicator dLight1.3b (AAV5-CAG-dLight1.3b, Addgene
         plasmid #125560). Delivered via unilateral striatal injection into the central
-        caudoputamen (cCP; assuming `vStr` in details.csv corresponds to the manuscript's
-        cCP target — see LAB_REVIEW.md Q3). Records dopamine release dynamics during
-        open field exploration.
+        caudoputamen (cCP; AP +0.38, ML +2.0, DV −2.9; Mantas et al. 2026, lines 628-629
+        and 656-658). Records dopamine release dynamics during open field exploration.
     fp_dat:
-      # jGCaMP8m in SN cell bodies via Cre-dependent AAV in DAT-Cre mice; records
-      # calcium activity of pan-DA SN dopamine neurons during OFT.
+      # jGCaMP8m axonal signals in dCP from DAT-Cre SN neurons. Confirmed by lab.
       name: jGCaMP8m
       manufacturer: Addgene
       description: >-
         Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine
-        neurons via a Cre-dependent AAV in DAT-Cre mice. Delivered as 300 nL unilateral
-        injection of pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE (Addgene #162381) into the SN
-        compact part. Records calcium dynamics of DAT+ dopamine neurons during open
-        field exploration.
+        neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE,
+        Addgene #162381, 300 nL unilateral injection into SNc). Axonal jGCaMP8m signals
+        recorded in the dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2) during
+        open field exploration.
     fp_anxa1:
-      # jGCaMP8m in SN cell bodies via Flp-dependent AAV in Anxa1-Flp mice; records
-      # calcium activity of Anxa1+ SN dopamine neurons during OFT.
+      # jGCaMP8m axonal signals in dCP from Anxa1+ SN neurons. Confirmed by lab.
       name: jGCaMP8m
       manufacturer: VVF Zurich
       description: >-
         Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+
-        SN dopamine neurons via a Flp-dependent AAV in Anxa1-Flp mice. Delivered as
-        300-500 nL unilateral injection of AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-
-        WPRE-bGHp (VVF Zurich) into the SN compact part. Records calcium dynamics of
-        Anxa1+ dopamine neurons during open field exploration.
+        SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-
+        dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, 300-500 nL unilateral injection
+        into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
+        AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
     # OFT-specific group label for pan-DA DAT-Cre mice; same indicator as fp_dat.
     dat-cre:
       name: jGCaMP8m
       manufacturer: Addgene
       description: >-
         Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine
-        neurons via a Cre-dependent AAV in DAT-Cre mice. Delivered as 300 nL unilateral
-        injection of pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE (Addgene #162381) into the SN
-        compact part. Records calcium dynamics of DAT+ dopamine neurons during open
-        field exploration.
+        neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE,
+        Addgene #162381, 300 nL unilateral injection into SNc). Axonal jGCaMP8m signals
+        recorded in the dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2) during
+        open field exploration.
     # OFT-specific group label for Anxa1-Flp mice; same indicator as fp_anxa1.
     anxa1-flp:
       name: jGCaMP8m
       manufacturer: VVF Zurich
       description: >-
         Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+
-        SN dopamine neurons via a Flp-dependent AAV in Anxa1-Flp mice. Delivered as
-        300-500 nL unilateral injection of AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-
-        WPRE-bGHp (VVF Zurich) into the SN compact part. Records calcium dynamics of
-        Anxa1+ dopamine neurons during open field exploration.
+        SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-
+        dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, 300-500 nL unilateral injection
+        into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
+        AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
 
   RawSignalFiberPhotometryResponseSeries:
     name: FiberPhotometryResponseSeries

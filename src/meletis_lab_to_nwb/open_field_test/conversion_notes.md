@@ -68,7 +68,7 @@ oft/
 - 161 sessions total
 - 7 sub-experiments: oft_6OHDA, oft_anti_anxa1, oft_fp, oft_mitopark_10-11weeks,
   oft_mitopark_15-18weeks, oft_Tetx, oft_6ohda_tailStriatum
-- Groups: asc_acid, 6OHDA, anxi-anxa1, anxa1-flp, dat-cre, dLight_dStr, dLight_vStr,
+- Groups: asc_acid, 6OHDA, anxi-anxa1, anxa1-flp, dat-cre, dLight_dStr (→dCP), dLight_vStr (→cCP),
   Ctrl 10-11 wks, KO 10-11 wks, KO 15-18 wks, Ctrl 15-18 wks, ctrl, Tetx, asc.acid_ts, 6ohda_ts
 - Lines: WT, Anxa1-flp/DAT-cre, anxa1-flp, dat-cre, DAT-cre/Tfam
 

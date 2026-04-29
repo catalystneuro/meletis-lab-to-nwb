@@ -13,38 +13,46 @@ from meletis_lab_to_nwb.open_field_test import OpenFieldTestNWBConverter
 # `FiberPhotometry.location`, `FiberPhotometry.indicator_label`, and the human-readable
 # `Indicator.description`. Group names mirror the water-consumption convention.
 GROUP_FP_CONFIG = {
+    # dLight_dStr → dCP, dLight_vStr → cCP confirmed by the lab.
+    # fp_dat / fp_anxa1 / dat-cre / anxa1-flp: fiber in dCP to record axonal jGCaMP8m
+    # signals from SN→dCP projections (same confirmation as water_consumption).
     "dLight_dStr": dict(
-        location="Caudoputamen",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="dLight1.3b",
         optical_fiber_name="optical_fiber_cpu",
     ),
     "dLight_vStr": dict(
-        # `vStr` likely corresponds to central caudoputamen (cCP) — see LAB_REVIEW.md Q3.
-        location="Caudoputamen",
+        location="Central caudoputamen",
+        fiber_insertion_key="cCP",
         indicator_label="dLight1.3b",
         optical_fiber_name="optical_fiber_cpu",
     ),
     "fp_dat": dict(
-        location="Substantia nigra, compact part",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
     ),
     "fp_anxa1": dict(
-        location="Substantia nigra, compact part",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
     ),
     # OFT-specific group label for pan-DA DAT-Cre mice (same hardware/indicator as fp_dat).
     "dat-cre": dict(
-        location="Substantia nigra, compact part",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
     ),
     # OFT-specific group label for Anxa1-Flp mice (same hardware/indicator as fp_anxa1).
     "anxa1-flp": dict(
-        location="Substantia nigra, compact part",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
     ),
 }
 
@@ -174,8 +182,9 @@ def session_to_nwb(
             metadata["FiberPhotometry"]["location"] = "unknown"
 
         fiber_insertions = metadata["FiberPhotometry"].get("FiberInsertions", {})
-        if group in fiber_insertions:
-            metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[group]
+        insertion_key = fp_config.get("fiber_insertion_key", group) if fp_config else group
+        if insertion_key in fiber_insertions:
+            metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[insertion_key]
 
     converter.run_conversion(
         metadata=metadata,
