@@ -52,19 +52,21 @@ Following the `opto_dlight` pattern:
 `convert_session.py` uses `GROUP_FP_CONFIG` to override the indicator / location based on
 `details.csv.group`:
 
-- `fp_dat`    → GCaMP in SN compact part (DAT-Cre pan-DA labeling). **Exact GCaMP variant unconfirmed — see open_questions.md W2.**
-- `fp_anxa1`  → GCaMP in SN compact part (Anxa1-Flp Anxa1+ DAN subpopulation). **Same caveat.**
-- `dLight_dStr` → dLight1.3b in Caudoputamen (dCP target from the manuscript).
-- `dLight_vStr` → dLight1.3b in Caudoputamen (provisionally cCP — carried-over ambiguity from the opto+dLight conversion, see open_questions.md).
+- `fp_dat`    → jGCaMP8m axonal signals in dCP; virus injected into SNc (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE, Addgene #162381, DAT-Cre).
+- `fp_anxa1`  → jGCaMP8m axonal signals in dCP; virus injected into SNc (AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, Anxa1-Flp).
+- `dLight_dStr` → dLight1.3b in dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2). Confirmed by lab.
+- `dLight_vStr` → dLight1.3b in central caudoputamen (cCP; AP +0.38, ML +2.0, DV −2.9). Confirmed by lab.
 
 ## Storage + alignment
 
 - Both FP streams use the CSV-provided timestamps (raw `time` column and processed `Time(s)`
-  column). Per the analogous opto+dLight inspection, those timestamps are on the same clock
-  as the behavior video (session starts at t=0 = video start).
-- Event times from `annotations/*.csv` are computed as `frame / 60.0`. If the video frame
-  rate differs from 60 Hz for some sessions (older sessions?) this will skew event times —
-  see open_questions.md W1.
+  column). **Confirmed by the lab**: Bonsai starts the video and synchronizes the FP system
+  simultaneously, so the FP clock and video frame clock share the same origin. No extra
+  alignment is needed.
+- Event times from `annotations/*.csv` are computed as `frame / 60.0`. **60 fps confirmed
+  by the lab for all sessions** (FLIR camera). See open_questions.md W1 for the manuscript
+  resolution discrepancy (paper states 800 × 800; actual files are 1440 × 1080 — paper correction
+  needed).
 
 ## Files produced per conversion
 

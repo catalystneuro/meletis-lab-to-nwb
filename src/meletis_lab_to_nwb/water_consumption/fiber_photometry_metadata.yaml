@@ -1,9 +1,10 @@
-# TODO: confirm fiber photometry metadata with Alessandro
 FiberPhotometry:
   # Session-specific indicator_label and location are overridden in convert_session.py
-  # based on the `group` column in details.csv (fp_dat / fp_anxa1 → GCaMP in SN DAN
-  # cell bodies; dLight_dStr / dLight_vStr → dLight1.3b in striatal terminals).
-  # Placeholder defaults below are for the dLight-in-striatum case; see open_questions.md.
+  # based on the `group` column in details.csv:
+  #   fp_dat / fp_anxa1   → jGCaMP8m, fiber in dCP recording axonal signals from SNc DANs
+  #   dLight_dStr         → dLight1.3b, fiber in dCP
+  #   dLight_vStr         → dLight1.3b, fiber in cCP
+  # Placeholder defaults below apply to the dLight-in-striatum case.
   location: Caudoputamen
   indicator_label: dLight1.3b
   excitation_wavelength_in_nm: 470.0
@@ -27,10 +28,9 @@ FiberPhotometry:
     wavelength_in_nm: 405.0
 
   OpticalFiberModel:
-    # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric (striatal implants).
-    # For fp_dat / fp_anxa1 (SN cell-body recordings) the same Doric 400 µm cannula is
-    # used per the lab's standard setup, but the manuscript does not report a distinct
-    # model number for SN implants — see open_questions.md.
+    # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric.
+    # All groups (dLight_dStr, dLight_vStr, fp_dat, fp_anxa1) use the same Doric 400 µm
+    # cannula implanted in the dCP or cCP.
     name: doric_400um_cannula_model
     manufacturer: Doric
     numerical_aperture: 0.22
@@ -49,33 +49,40 @@ FiberPhotometry:
       405 nm Doric LED for fiber photometry isosbestic-reference excitation.
 
   # FiberInsertion is injected per-session by convert_session.py based on details.csv `group`.
-  # CPu coordinates are the same across all FP experiments (Mantas et al. 2026, Implant
-  # placement, p.15). SNc coordinates for fp_dat/fp_anxa1 are not reported — see LAB_REVIEW W2.
+  # All four groups use a Doric 400 µm cannula; right hemisphere for all sessions.
+  # Coordinates confirmed by the lab (Mantas et al. 2026, Implant placement, lines 656-658):
+  #   dLight_dStr / fp_dat / fp_anxa1 → dCP (AP +0.74, ML ±1.5, DV −2.2)
+  #   dLight_vStr                     → cCP (AP +0.38, ML +2.0, DV −2.9)
+  # fp_dat / fp_anxa1 virus injected into SNc; fiber placed in dCP to record axonal GCaMP.
+  # Keys use article nomenclature (dCP/cCP). convert_session.py maps each raw group code
+  # to its insertion key via GROUP_FP_CONFIG["fiber_insertion_key"]:
+  #   dLight_dStr, fp_dat, fp_anxa1 → dCP
+  #   dLight_vStr                   → cCP
   FiberInsertions:
-    dLight_dStr:
-      # dCP (dorsal caudoputamen) from Mantas et al. 2026, Implant placement.
+    dCP:
+      # Dorsal caudoputamen. Confirmed by lab (Mantas et al. 2026, lines 656-658).
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.74
       insertion_position_ml_in_mm: 1.5
       insertion_position_dv_in_mm: -2.2
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
-    dLight_vStr:
-      # cCP (central caudoputamen) — same coordinates as opto+dLight vStr sessions.
+    cCP:
+      # Central caudoputamen. Confirmed by lab (Mantas et al. 2026, lines 656-658).
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.38
       insertion_position_ml_in_mm: 2.0
       insertion_position_dv_in_mm: -2.9
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
-    # fp_dat and fp_anxa1: SNc FP fiber coordinates not reported in manuscript — see LAB_REVIEW W2.
 
   OpticalFiber:
-    name: optical_fiber
+    name: optical_fiber_cpu
     description: >-
-      Doric 400 µm ceramic ferrule fiber optic cannula for fiber photometry recording.
-      Per-session implantation target (striatum vs SN) is reflected in the linked
-      OptogeneticStimulusSite/FiberPhotometryTable location column.
+      Doric 400 µm ceramic ferrule fiber optic cannula implanted in the dorsal caudoputamen
+      (dCP) or central caudoputamen (cCP). For fp_dat/fp_anxa1 groups the fiber records
+      axonal GCaMP signals from SN→dCP projections; for dLight groups it records dopamine
+      release. Per-session location is stored in the FiberPhotometryTable.
 
   Photodetector:
     name: photodetector

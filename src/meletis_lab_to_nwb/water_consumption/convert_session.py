@@ -10,58 +10,63 @@ from meletis_lab_to_nwb.water_consumption import WaterConsumptionNWBConverter
 
 # Per-group overrides for fiber photometry metadata. Keys match the `group` column of
 # details.csv; values populate `FiberPhotometry.location`, `FiberPhotometry.indicator_label`,
-# and the human-readable `Indicator.description`. Flagged in open_questions.md where the
-# manuscript text is ambiguous (in particular, the exact GCaMP variant for fp_dat/fp_anxa1,
-# and whether `dLight_vStr` is cCP or NAc).
+# and the human-readable `Indicator.description`.
+# dLight_dStr → dCP (dorsal caudoputamen), dLight_vStr → cCP (central caudoputamen),
+# confirmed by the lab (same nomenclature as opto+dLight conversion).
 GROUP_FP_CONFIG = {
     "dLight_dStr": dict(
-        location="Caudoputamen",
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="dLight1.3b",
         optical_fiber_name="optical_fiber_cpu",
         indicator_description=(
             "Genetically encoded dopamine indicator dLight1.3b delivered via unilateral "
             "AAV5-CAG-dLight1.3b (Addgene #125560) injection into the dorsal caudoputamen "
-            "(dCP; Mantas et al. 2026, lines 628-629 and 656-658)."
+            "(dCP; AP +0.74, ML ±1.5, DV −2.2; Mantas et al. 2026, lines 628-629 and 656-658)."
         ),
     ),
     "dLight_vStr": dict(
-        # Manuscript describes dCP and cCP (both in Caudoputamen); see open_questions.md
-        # item 2 carried over from the opto+dLight conversion — the `vStr` label may be a
-        # lab-internal shorthand for cCP rather than nucleus accumbens.
-        location="Caudoputamen",
+        # Confirmed by the lab: dLight_vStr → cCP (central caudoputamen).
+        location="Central caudoputamen",
+        fiber_insertion_key="cCP",
         indicator_label="dLight1.3b",
         optical_fiber_name="optical_fiber_cpu",
         indicator_description=(
             "Genetically encoded dopamine indicator dLight1.3b delivered via unilateral "
             "AAV5-CAG-dLight1.3b (Addgene #125560) injection into the central caudoputamen "
-            "(cCP; assuming `vStr` in details.csv corresponds to the manuscript's cCP target — "
-            "see open_questions.md)."
+            "(cCP; AP +0.38, ML +2.0, DV −2.9; Mantas et al. 2026, lines 628-629 and 656-658)."
         ),
     ),
     "fp_dat": dict(
-        location="Substantia nigra, compact part",
+        # Fiber in dCP to record axonal jGCaMP8m signals. Confirmed by the lab.
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
         indicator_name="jGCaMP8m",
         indicator_manufacturer="Addgene",
         indicator_description=(
             "Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine "
-            "neurons via a Cre-dependent AAV in DAT-Cre mice. Delivered as 300 nL unilateral "
-            "injection of pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE (Addgene #162381) into the SN "
-            "compact part."
+            "neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE, "
+            "Addgene #162381, 300 nL unilateral injection into SNc). Axonal GCaMP signals "
+            "recorded in the dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2) via a "
+            "Doric 400 µm fiber optic cannula."
         ),
     ),
     "fp_anxa1": dict(
-        location="Substantia nigra, compact part",
+        # Fiber in dCP to record axonal jGCaMP8m signals. Confirmed by the lab.
+        location="Dorsal caudoputamen",
+        fiber_insertion_key="dCP",
         indicator_label="jGCaMP8m",
-        optical_fiber_name="optical_fiber_snc",
+        optical_fiber_name="optical_fiber_cpu",
         indicator_name="jGCaMP8m",
         indicator_manufacturer="VVF Zurich",
         indicator_description=(
             "Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+ "
-            "SN dopamine neurons via a Flp-dependent AAV in Anxa1-Flp mice. Delivered as "
-            "300–500 nL unilateral injection of AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-"
-            "WPRE-bGHp (VVF Zurich) into the SN compact part."
+            "SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-"
+            "dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, 300–500 nL unilateral injection "
+            "into SNc). Axonal GCaMP signals recorded in the dorsal caudoputamen (dCP; "
+            "AP +0.74, ML ±1.5, DV −2.2) via a Doric 400 µm fiber optic cannula."
         ),
     ),
 }
@@ -177,8 +182,9 @@ def session_to_nwb(
         metadata["FiberPhotometry"]["location"] = "unknown"
 
     fiber_insertions = metadata["FiberPhotometry"].get("FiberInsertions", {})
-    if group in fiber_insertions:
-        metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[group]
+    insertion_key = fp_config.get("fiber_insertion_key", group) if fp_config else group
+    if insertion_key in fiber_insertions:
+        metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[insertion_key]
 
     converter.run_conversion(
         metadata=metadata,

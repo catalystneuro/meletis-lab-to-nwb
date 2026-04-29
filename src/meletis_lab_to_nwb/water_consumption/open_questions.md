@@ -5,69 +5,42 @@ the evidence behind the default.
 
 ---
 
-## W1. Is every behavior video recorded at 60 fps?
+## ~~W1. Is every behavior video recorded at 60 fps?~~ ✓ Resolved
 
-**Question.** All 59 videos we inspected (`ffprobe`) report 1440 × 1080 @ 60 fps. The
-manuscript (Mantas et al. 2026, lines 910–911) describes a FLIR camera at **60 fps, 800 × 800**
-for the reaching task. The frame rate matches, but the resolution does not. Were earlier
-sessions (e.g. the 2023 batch) recorded on a different camera or at a different frame rate?
+**Confirmed by the lab**: all sessions were recorded at **60 fps** with a FLIR camera.
+`ReachingBehaviorInterface` default of `video_frame_rate_hz=60.0` is correct for all sessions.
 
-**Why it matters.** Event times in the NWB file are computed as
-`frame_index / video_frame_rate_hz` in `ReachingBehaviorInterface`. A wrong frame rate
-(e.g. 30 fps instead of 60) would shift every annotated event by 2×.
-
-**Current behavior.** `ReachingBehaviorInterface` defaults `video_frame_rate_hz=60.0` for
-every session. If any session was recorded at a different rate, we need a per-session
-override (easy: parse via ffprobe at conversion time).
-
-**What to ask.** Can the lab confirm that every session was recorded at 60 fps? If not,
-which sessions differ and at what frame rate?
+**Note — manuscript resolution discrepancy**: The manuscript (lines 910–911) states
+"60 fps, 800 × 800" but all 59 videos report **1440 × 1080** via ffprobe. The lab confirmed
+the FLIR camera was used; the 800 × 800 figure in the manuscript needs to be corrected before
+publication. The NWB conversion uses the actual file resolution.
 
 ---
 
-## W2. Which GCaMP variant + AAV is used for the `fp_dat` and `fp_anxa1` cohorts?
+## ~~W2. GCaMP variant, AAV, and fiber location for `fp_dat` / `fp_anxa1`~~ ✓ Resolved
 
-**Question.** Four `group` values appear in `details.csv`:
-- `dLight_dStr` and `dLight_vStr`: the manuscript describes these (dLight1.3b via AAV5-CAG-dLight1.3b, Addgene #125560).
-- `fp_dat` and `fp_anxa1`: the manuscript text does **not** specify which calcium indicator
-  and AAV were used for SN DAN cell-body recordings in this cohort. The bibliography
-  includes a high-performance GCaMP reference (Dana et al. 2019, ref 101), which suggests
-  GCaMP7 — but this is not tied explicitly to the reaching-task cohort.
+**Confirmed by the lab and cross-referenced with Mantas et al. 2026 (lines 621–628):**
 
-**Why it matters.** The NWB `Indicator` object needs a concrete label (e.g. `GCaMP7f`,
-`jGCaMP8m`), a manufacturer (Addgene + plasmid ID), and a construct/AAV description.
-Without this, the fp_dat and fp_anxa1 sessions will be published with a placeholder
-`indicator_label: "GCaMP"` and a description noting the uncertainty.
+- **Indicator**: jGCaMP8m for both groups (ref 101 = Dana et al. 2019, Nat. Methods 16, 649-657)
+- **fp_dat** (DAT-Cre): pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE (Addgene #162381), 300 nL unilateral
+  injection into SNc
+- **fp_anxa1** (Anxa1-Flp): AAV-DJ/2-hSyn1-chl-dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp (VVF Zurich),
+  300–500 nL unilateral injection into SNc
 
-**Current behavior.** `convert_session.py.GROUP_FP_CONFIG` sets
-`indicator_label = "GCaMP"` and a description that flags the uncertainty. The
-`Indicator.description` field stays generic.
-
-**What to ask.**
-- Exact GCaMP variant for the SN cell-body recordings in the reaching task
-  (GCaMP7f, jGCaMP8m, etc.)?
-- AAV construct used (serotype, promoter, Cre/Flp dependence) and manufacturer / plasmid ID?
-- Injection coordinates and volume for SN DANs in this cohort?
+**Fiber placement**: confirmed by the lab as **dCP (AP +0.74, ML ±1.5, DV −2.2)** for both
+groups. The virus is injected into the SNc to label the neurons, but the fiber optic cannula
+is implanted in the dorsal caudoputamen to record GCaMP signals from the striatal
+projections of those SN neurons. All updated in `convert_session.py` and
+`fiber_photometry_metadata.yaml`.
 
 ---
 
-## W3. Does `dLight_vStr` in `details.csv` correspond to cCP or to NAc?
+## ~~W3. Does `dLight_vStr` correspond to cCP or NAc?~~ ✓ Resolved
 
-**Question.** Carried over from the opto+dLight conversion. The manuscript describes two
-striatal dLight targets (**dCP** and **cCP**, both in the caudoputamen; lines 628-629,
-656-658). `details.csv` uses the shorthand `vStr`, which could mean either "central CP"
-(consistent with the manuscript) or "ventral striatum" = nucleus accumbens (inconsistent
-with the manuscript but a common neuroanatomy convention).
-
-**Why it matters.** The Allen Atlas location field in the NWB file is different
-(`Caudoputamen` vs `Nucleus accumbens`). The wrong label would mislead downstream users.
-
-**Current behavior.** `convert_session.py.GROUP_FP_CONFIG["dLight_vStr"]` maps to
-`Caudoputamen` on the assumption that `vStr` is a lab shorthand for cCP. See the analogous
-question in `opto_dlight/open_questions.md` item 2.
-
-**What to ask.** Does `dLight_vStr` correspond to the manuscript's cCP target (caudoputamen)
-or to a separate nucleus-accumbens cohort that isn't described in the paper?
+**Confirmed by the lab**: `dLight_vStr` → **cCP** (central caudoputamen) and `dLight_dStr` →
+**dCP** (dorsal caudoputamen), consistent with the manuscript nomenclature and matching the
+resolution of the same question in the opto+dLight conversion. Updated in `convert_session.py`,
+`fiber_photometry_metadata.yaml`, `conversion_notes.md`, and the demo notebook.
 
 ---
 
@@ -104,23 +77,11 @@ value, and confirm that `missed`/`emopty` are indeed typos for `miss`/`empty`?
 
 ---
 
-## W6. Alignment between the behavior video and the fiber photometry stream
+## ~~W6. Alignment between the behavior video and the fiber photometry stream~~ ✓ Resolved
 
-**Observation.** Fiber photometry timestamps in `*_signal_df.csv` start at ~7 s and run at
-~60 Hz; the video also runs at 60 fps and presumably starts at t=0 for the same session.
-
-**Why it matters.** We assume the FP `Time(s)` column and the behavior video are on the
-same clock (both started by Bonsai when the session began). If there's a hardware latency
-between FP start and video start, events annotated at frame N would not line up with the FP
-trace sample at time `N / 60`. Same logic as the `start.fp` discovery in the opto+dLight
-conversion.
-
-**Why no `start.fp` here?** `details.csv` for water_consumption does **not** have a
-`start.fp` column (verified). So either (a) FP and video are assumed to start together, or
-(b) alignment metadata is stored elsewhere we haven't been shown.
-
-**What to ask.** Is there per-session alignment metadata between the behavior video and
-the fiber photometry stream (a start offset, a TTL sync pulse, a second Bonsai stream)?
-If not, can we treat the two clocks as synchronized?
+**Confirmed by the lab**: Bonsai starts the video recording and simultaneously synchronizes
+the fiber photometry system at session start. No additional alignment step is needed.
+The FP `Time(s)` timestamps and the behavior video frame indices share the same clock
+origin, so `frame / 60.0` directly gives seconds relative to the FP timeline.
 
 ---
