@@ -123,20 +123,24 @@ def session_to_nwb(
     )
 
     # Override per-session recording location (Allen Atlas names) and fiber insertion coordinates.
+    # details.csv uses raw lab codes (dStr/vStr); article nomenclature is dCP/cCP.
     group = details_row["group"]
+    group_to_article_name = {"dStr": "dCP", "vStr": "cCP"}
+    article_group = group_to_article_name.get(group, group)
+
     group_names_to_locations = {
-        "dStr": "Dorsal caudoputamen",
-        "vStr": "Central caudoputamen",
+        "dCP": "Dorsal caudoputamen",
+        "cCP": "Central caudoputamen",
     }
-    metadata["FiberPhotometry"]["location"] = group_names_to_locations.get(group, "unknown")
+    metadata["FiberPhotometry"]["location"] = group_names_to_locations.get(article_group, "unknown")
 
     fiber_insertions = metadata["FiberPhotometry"].get("FiberInsertions", {})
-    if group not in fiber_insertions:
+    if article_group not in fiber_insertions:
         raise ValueError(
-            f"Unknown group '{group}' — no FiberInsertion entry in fiber_photometry_metadata.yaml. "
-            f"Known groups: {list(fiber_insertions.keys())}"
+            f"Unknown group '{group}' (article name: '{article_group}') — no FiberInsertion entry in "
+            f"fiber_photometry_metadata.yaml. Known groups: {list(fiber_insertions.keys())}"
         )
-    metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[group]
+    metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[article_group]
 
     converter.run_conversion(
         metadata=metadata,

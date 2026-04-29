@@ -6,8 +6,9 @@ FiberPhotometry:
   emission_wavelength_in_nm: 525.0
 
   ExcitationSourceModel_470nm:
-    # 470 nm LED for signal channel. Power 20-30 µW (Mantas et al. 2026, line 917-918).
-    # Doric system (ref 101); no model number reported in manuscript.
+    # 470 nm LED for signal channel. Power 20-30 µW (Mantas et al. 2026, lines 917-918).
+    # Doric system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657), cited
+    # as ref 101 in Mantas et al. 2026. No specific LED model number reported in Mantas et al. 2026.
     name: doric_470nm_led_model
     manufacturer: Doric
     source_type: "LED"
@@ -16,8 +17,9 @@ FiberPhotometry:
     # (avoids dict_deep_update deduplication of equal values in a list)
 
   ExcitationSourceModel_405nm:
-    # 405 nm LED for isosbestic reference channel. Power 15-25 µW (Mantas et al. 2026, line 918-919).
-    # Doric system (ref 101); no model number reported in manuscript.
+    # 405 nm LED for isosbestic reference channel. Power 15-25 µW (Mantas et al. 2026, lines 918-919).
+    # Doric system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657), cited
+    # as ref 101 in Mantas et al. 2026. No specific LED model number reported in Mantas et al. 2026.
     name: doric_405nm_led_model
     manufacturer: Doric
     source_type: "LED"
@@ -49,20 +51,22 @@ FiberPhotometry:
       405 nm Doric LED for dLight1.3b isosbestic reference channel. Power 15-25 µW.
       Delivered through DoricStudio V5 software.
 
-  # FiberInsertion is NOT set here — it is injected per-session by convert_session.py based on
-  # details.csv `group` (dStr → dCP, vStr → cCP) with manuscript coordinates (Mantas et al. 2026,
-  # Implant placement, lines 652-654). ML sign is set to + (right hemisphere); adjust for left.
+  # FiberInsertion is NOT set here — it is injected per-session by convert_session.py.
+  # details.csv encodes the recording site as dStr (→ dCP) or vStr (→ cCP); the mapping
+  # to article nomenclature happens in convert_session.py before this lookup.
+  # Coordinates from Mantas et al. 2026, Implant placement, lines 652-654.
+  # Right hemisphere confirmed by the lab for all sessions (ML is always positive).
   FiberInsertions:
-    dStr:
-      # dCP (dorsal caudoputamen) coordinates from Mantas et al. 2026.
+    dCP:
+      # Dorsal caudoputamen coordinates from Mantas et al. 2026.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.74
       insertion_position_ml_in_mm: 1.5
       insertion_position_dv_in_mm: -2.2
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
-    vStr:
-      # cCP (central caudoputamen) coordinates from Mantas et al. 2026.
+    cCP:
+      # Central caudoputamen coordinates from Mantas et al. 2026.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.38
       insertion_position_ml_in_mm: 2.0
@@ -111,7 +115,7 @@ FiberPhotometry:
   # description of which neurons are being studied changes.
   Indicators:
     anxa1-flp:
-      # dLight1.3b injected into dCP (dStr) or cCP (vStr); recording DA release driven by
+      # dLight1.3b injected into dCP or cCP; recording DA release driven by
       # ChRmine activation of Anxa1+ (Flp+) SNc dopamine neurons.
       name: dLight1.3b
       manufacturer: Addgene
@@ -123,7 +127,7 @@ FiberPhotometry:
         optogenetic activation of Anxa1+ (Flp-recombinase-expressing) SNc dopamine neurons
         in Anxa1-Flp mice.
     dat-cre:
-      # dLight1.3b injected into dCP (dStr) or cCP (vStr); recording DA release driven by
+      # dLight1.3b injected into dCP or cCP; recording DA release driven by
       # ChRmine activation of DAT+ (Cre+) SNc dopamine neurons.
       name: dLight1.3b
       manufacturer: Addgene

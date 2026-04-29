@@ -1,7 +1,14 @@
 # Notes concerning the opto+dLight conversion
 
 ## Data Location
-`/Volumes/T9/data/Meletis/opto+dLight/`
+`.../Meletis/opto+dLight/`
+
+## Experiment summary
+
+Water-restricted Anxa1-Flp mice (n=4) freely nosepoked to trigger bilateral SNc laser stimulation
+(640 nm, ChRmine, 40 Hz, 1 s bursts). Striatal dopamine was recorded simultaneously with dLight1.3b fiber photometry
+at two sites (dCP, cCP). Five laser intensities tested per animal (0.1, 0.2, 0.5, 1, 2 mW).
+Corresponds to Extended Data Fig. 7F–J.
 
 ## File Structure
 ```
@@ -42,9 +49,9 @@ opto+dLight/
 
 - 20 sessions total, 4 mice (776769, 776770, 802369, 802372)
 - All anxa1-flp line
-- Two recording sites:
-  - `dStr` (dorsal striatum): mice 776769, 776770 (10 sessions)
-  - `vStr` (ventral striatum): mice 802369, 802372 (10 sessions)
+- Two recording sites (details.csv `group` codes → article nomenclature):
+  - `dStr` → `dCP` (dorsal caudoputamen): mice 776769, 776770 (10 sessions)
+  - `vStr` → `cCP` (central caudoputamen): mice 802369, 802372 (10 sessions)
 - 5 intensities per mouse pair: 0.1, 0.2, 0.5, 1, 2 mW
 - Session timestamp encoded in filename: `oft_YYYY-MM-DDTHH_MM_SS`
 - Timezone: Europe/Stockholm (Karolinska Institutet)
@@ -76,5 +83,5 @@ opto+dLight/
 
 ## Known Issues
 - `start.fp` column in details.csv matches the sample index of the first TTL True value
-- `has_TTL` column is blank for vStr sessions in details.csv but TTL files exist for all 20 sessions
+- `has_TTL` column is blank for cCP (vStr) sessions in details.csv but TTL files exist for all 20 sessions
 - Typo in details.csv column name: `intenisty` (should be `intensity`)
