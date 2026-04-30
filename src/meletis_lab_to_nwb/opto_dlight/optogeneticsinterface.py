@@ -88,12 +88,13 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         max_stim_duration_s: float = 1.5,
     ) -> None:
         df = pd.read_csv(self.file_path, header=None, names=["timestamp", "frame", "ttl"])
-        frame_indices = df["frame"].values.astype(np.float64)
+        unique_df = df.groupby("frame")["ttl"].any().reset_index()
+        frame_indices = unique_df["frame"].values.astype(np.float64)
         # Per Meletis lab: column 1 (absolute wall-clock timestamps) is not
         # accurate per sample. Use the 0-indexed frame counter (column 2) divided by the
         # confirmed uniform frame rate (30 Hz).
         time_seconds = frame_indices / video_frame_rate_hz
-        ttl_values = df["ttl"].values.astype(bool)
+        ttl_values = unique_df["ttl"].values.astype(bool)
         intensity_w = intensity_mw / 1000.0
 
         # Identify stimulation episodes (groups of True separated by > 1s gap)
@@ -105,7 +106,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # `start.fp` is the value of the TTL `sample` column at the first TTL True row (NOT the
         # row number — the `sample` column can have gaps from dropped frames).
         if start_fp is not None:
-            first_true_sample = int(df["frame"].iloc[true_indices[0]])
+            first_true_sample = int(unique_df["frame"].iloc[true_indices[0]])
             if first_true_sample != start_fp:
                 raise ValueError(
                     f"details.csv start.fp={start_fp} does not match the TTL `sample` column "
