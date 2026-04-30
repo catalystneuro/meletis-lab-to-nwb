@@ -76,6 +76,7 @@ def session_to_nwb(
             intensity_mw=intensity_mw,
             frequency_hz=frequency_hz,
             start_fp=start_fp,
+            video_frame_rate_hz=30.0,  # confirmed by Meletis lab
         ),
         FiberPhotometry=dict(stub_test=stub_test),
     )

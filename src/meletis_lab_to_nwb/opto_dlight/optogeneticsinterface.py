@@ -1,5 +1,6 @@
 """DataInterface for optogenetic stimulation TTL data."""
 
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -14,8 +15,13 @@ from pynwb.ogen import OptogeneticSeries, OptogeneticStimulusSite
 class OptogeneticsTTLInterface(BaseDataInterface):
     """DataInterface for reading optogenetic stimulation TTL CSVs and writing to NWB.
 
-    The TTL CSVs have 3 columns (no header): ISO timestamp, sample index, and boolean (True/False)
-    indicating whether the laser was on at each sample (acquired at the ~30 Hz video frame rate).
+    The TTL CSVs have 3 columns (no header):
+      1. ISO wall-clock timestamp — NOT used for timing (per Meletis lab: not accurate per sample)
+      2. frame (0-indexed) — used to compute per-sample times via ``frame / frame_rate``
+      3. Boolean TTL state (True = laser on)
+
+    Session start time is parsed from the filename (``{prefix}_{YYYY-MM-DD}T{HH_MM_SS}.csv``),
+    A uniform frame rate can be used (confirmed by the lab) default is 30.0 Hz.
 
     Stimulation episodes are extracted by grouping consecutive True samples separated by gaps > 1s.
     Two classes of burst are excluded from both the ``OptogeneticSeries`` power trace and the
@@ -57,27 +63,36 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         return metadata
 
     def _get_session_start_time(self) -> datetime:
+        """Parse session start time from the TTL filename.
+
+        Per Meletis lab: The filename encodes the true session start time.
+        Expected format: {prefix}_{YYYY-MM-DD}T{HH_MM_SS}.csv, e.g. oft_2024-03-01T10_16_32.csv.
+        Falls back to first-row timestamp if the filename does not match.
+        """
+        match = re.search(r"(\d{4}-\d{2}-\d{2}T\d{2}_\d{2}_\d{2})$", self.file_path.stem)
+        if match:
+            return datetime.strptime(match.group(1), "%Y-%m-%dT%H_%M_%S")
+        # Fallback — should not be reached for well-formed filenames
         df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
-        timestamps = pd.to_datetime(df["timestamp"])
-        session_start = timestamps.iloc[0]
-        return session_start
+        return pd.to_datetime(df["timestamp"].iloc[0]).to_pydatetime().replace(tzinfo=None)
 
     def add_to_nwbfile(
         self,
         nwbfile: NWBFile,
         metadata: dict | None = None,
         stub_test: bool = False,
+        video_frame_rate_hz: float = 30.0,
         intensity_mw: float = 1.0,
         frequency_hz: float = 40.0,
         start_fp: int | None = None,
         max_stim_duration_s: float = 1.5,
     ) -> None:
-        df = pd.read_csv(self.file_path, header=None, names=["timestamp", "sample", "ttl"])
-        timestamps = pd.to_datetime(df["timestamp"])
-        session_start = metadata["NWBFile"]["session_start_time"]
-
-        # Convert to seconds relative to session start
-        time_seconds = (timestamps - session_start).dt.total_seconds().values
+        df = pd.read_csv(self.file_path, header=None, names=["timestamp", "frame", "ttl"])
+        frame_indices = df["frame"].values.astype(np.float64)
+        # Per Meletis lab: column 1 (absolute wall-clock timestamps) is not
+        # accurate per sample. Use the 0-indexed frame counter (column 2) divided by the
+        # confirmed uniform frame rate (30 Hz).
+        time_seconds = frame_indices / video_frame_rate_hz
         ttl_values = df["ttl"].values.astype(bool)
         intensity_w = intensity_mw / 1000.0
 
@@ -90,7 +105,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # `start.fp` is the value of the TTL `sample` column at the first TTL True row (NOT the
         # row number — the `sample` column can have gaps from dropped frames).
         if start_fp is not None:
-            first_true_sample = int(df["sample"].iloc[true_indices[0]])
+            first_true_sample = int(df["frame"].iloc[true_indices[0]])
             if first_true_sample != start_fp:
                 raise ValueError(
                     f"details.csv start.fp={start_fp} does not match the TTL `sample` column "
@@ -106,8 +121,8 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         gaps = np.diff(true_times)
         burst_boundaries = np.concatenate([[0], np.where(gaps > 1.0)[0] + 1, [len(true_indices)]])
 
-        # --- Exclude non-stimulation bursts (pending lab confirmation — see open_questions.md
-        # items 1 and 1b). Two rules, both conservative:
+        # --- Exclude non-stimulation bursts
+        # Two rules, both conservative:
         # (1) the first burst is the FP-acquisition sync pulse (timing coincides with FP-start
         #     at ~8.1 s; details.csv.start.fp equals the TTL `sample` value at the first True
         #     row);

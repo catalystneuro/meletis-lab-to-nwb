@@ -26,15 +26,17 @@ opto+dLight/
 ## Data Streams
 
 ### Optogenetic Stimulation (TTL)
-- Format: CSV, no header, 3 columns: ISO timestamp (+01:00 timezone), sample index, boolean
-- Sampling rate: ~143 Hz (measured from data; comment in code saying ~30 Hz is incorrect)
+- Format: CSV, no header, 3 columns: (1) ISO wall-clock timestamp, (2) frame (0-indexed), (3) boolean TTL state
+- **Column 1 is NOT used for timing** — confirmed by Meletis lab: individual wall-clock timestamps are not accurate per sample
+- **Time basis**: session start parsed from filename (`oft_YYYY-MM-DDTHH_MM_SS`); per-sample time = `frame_index / frame_rate`;
+- Sampling rate: OptogeneticsTTLInterface conversion option `video_frame_rate` set to 30.0 Hz (confirmed by Meletis lab)
 - Duration: ~1100-1260s per session
 - Each True value is a brief 1-sample pulse (~7 ms); consecutive True samples separated by < 1s are grouped into one burst
 - The first burst of True values = fiber photometry system activation (excluded)
 - Subsequent bursts = nosepoke-triggered laser stimulation episodes (~1-6s per burst depending on nosepoke clustering)
 - Protocol: 40 Hz laser, 1s stimulation + 3s inter-stimulation interval
 - NeuroConv interface: Custom `OptogeneticsTTLInterface` → `OptogeneticSeries` + `TimeIntervals`
-- Clock synchronization: FP clock and TTL clock are synchronized to within 7 ms (verified by matching FP start at ~8.117s with first TTL True at ~8.124s)
+- Clock alignment: TTL t=0 is session start (from filename); FP `Time(s)` starts at ~8.1 s (system warm-up). Both clocks originate from Bonsai session start, so the ~8.1 s FP offset and the first TTL True (~8.1 s) remain aligned.
 
 ### Fiber Photometry (dLight)
 - **Raw acquisition** (`*_signal.csv`): 3 columns — `time`, `ref` (405 nm isosbestic), `sig` (470 nm signal), arbitrary fluorescence units. Stored as `FiberPhotometryResponseSeries` and `FiberPhotometryResponseSeriesIsosbestic` in `nwbfile.acquisition`.
