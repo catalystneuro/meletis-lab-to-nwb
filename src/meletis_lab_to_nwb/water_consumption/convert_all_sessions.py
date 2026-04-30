@@ -8,7 +8,7 @@ from pprint import pformat
 
 from tqdm import tqdm
 
-from .convert_session import session_to_nwb
+from meletis_lab_to_nwb.water_consumption.convert_session import session_to_nwb
 
 
 def dataset_to_nwb(
