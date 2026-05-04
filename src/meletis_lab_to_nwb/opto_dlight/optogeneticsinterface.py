@@ -9,7 +9,6 @@ import pandas as pd
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.utils import DeepDict, dict_deep_update, load_dict_from_file
 from pynwb import NWBFile
-from pynwb.ogen import OptogeneticSeries, OptogeneticStimulusSite
 
 
 class OptogeneticsTTLInterface(BaseDataInterface):
@@ -23,17 +22,15 @@ class OptogeneticsTTLInterface(BaseDataInterface):
     Session start time is parsed from the filename (``{prefix}_{YYYY-MM-DD}T{HH_MM_SS}.csv``),
     A uniform frame rate can be used (confirmed by the lab) default is 30.0 Hz.
 
-    Stimulation episodes are extracted by grouping consecutive True samples separated by gaps > 1s.
-    Two classes of burst are excluded from both the ``OptogeneticSeries`` power trace and the
-    ``stimulation_episodes`` ``TimeIntervals`` (pending lab confirmation):
+    Stimulation epochs are extracted by grouping consecutive True samples separated by gaps > 1s.
+    Two classes of burst are excluded from the ``OptogeneticEpochsTable`` (pending lab confirmation):
     1. The first TTL burst, interpreted as an FP-acquisition sync pulse.
     2. Any additional burst whose duration exceeds ``max_stim_duration_s`` (default 1.5 s,
        well above the documented 1 s stimulation pulse and well below the observed ~5–10 s
        warm-up/calibration bursts that appear at the start of some sessions).
 
-    Uses ndx-optogenetics (OptogeneticExperimentMetadata) to store rich device and virus metadata
-    extracted from Mantas et al. (2026), including the ChRmine virus, SNc injection coordinates,
-    and optical fiber parameters.
+    Uses ndx-optogenetics (OptogeneticExperimentMetadata + OptogeneticEpochsTable) to store rich
+    device, virus, and per-epoch stimulation metadata extracted from Mantas et al. (2026).
     """
 
     keywords = ("optogenetics", "laser", "stimulation", "TTL")
@@ -84,6 +81,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         video_frame_rate_hz: float = 30.0,
         intensity_mw: float = 1.0,
         frequency_hz: float = 40.0,
+        pulse_length_ms: float = 10.0,
         start_fp: int | None = None,
         max_stim_duration_s: float = 1.5,
     ) -> None:
@@ -95,9 +93,8 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         # confirmed uniform frame rate (30 Hz).
         time_seconds = frame_indices / video_frame_rate_hz
         ttl_values = unique_df["ttl"].values.astype(bool)
-        intensity_w = intensity_mw / 1000.0
 
-        # Identify stimulation episodes (groups of True separated by > 1s gap)
+        # Identify stimulation epochs (groups of True separated by > 1s gap)
         true_indices = np.where(ttl_values)[0]
         if len(true_indices) == 0:
             return
@@ -131,83 +128,82 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         #     calibration pulse. The documented protocol is 1 s stim bursts; observed
         #     warm-up bursts are ~5-10 s, so there is a wide safe gap.
         stim_burst_starts_in_true: list[int] = []
-        excluded_burst_indices: list[np.ndarray] = []
         for burst_idx in range(len(burst_boundaries) - 1):
             b_start = burst_boundaries[burst_idx]
             b_end = burst_boundaries[burst_idx + 1]
             duration = true_times[b_end - 1] - true_times[b_start]
             is_first_burst = burst_idx == 0
             is_overlong = duration > max_stim_duration_s
-            if is_first_burst or is_overlong:
-                excluded_burst_indices.append(true_indices[b_start:b_end])
-            else:
+            if not (is_first_burst or is_overlong):
                 stim_burst_starts_in_true.append(int(b_start))
 
-        # Build OptogeneticSeries power trace with excluded-burst samples zeroed out.
-        power_data = np.where(ttl_values, intensity_w, 0.0).astype(np.float64)
-        if excluded_burst_indices:
-            power_data[np.concatenate(excluded_burst_indices)] = 0.0
-
         opto_meta = (metadata or {}).get("Optogenetics", {})
-        site_meta = opto_meta.get("OptogeneticStimulusSite", {})
-        excitation_lambda = float(site_meta.get("excitation_lambda", 640.0))
+        excitation_lambda = float(opto_meta.get("excitation_lambda", 640.0))
         fmt_kwargs = dict(
             intensity_mw=intensity_mw,
-            intensity_w=intensity_w,
             frequency_hz=frequency_hz,
             excitation_lambda=excitation_lambda,
         )
 
         # --- ndx-optogenetics: rich device and virus metadata ---
-        self._add_optogenetics_metadata(
+        sites_table = self._add_optogenetics_metadata(
             nwbfile=nwbfile,
             metadata=metadata,
             intensity_mw=intensity_mw,
             frequency_hz=frequency_hz,
         )
 
-        # --- Core NWB: OptogeneticSeries (continuous TTL power trace) ---
-        site_name = site_meta.get("name")
-        ogen_site = nwbfile.ogen_sites.get(site_name)
-        series_meta = opto_meta.get("OptogeneticSeries", {})
-        ogen_series = OptogeneticSeries(
-            name=series_meta.get("name"),
-            description=(series_meta.get("description") or "").format(**fmt_kwargs),
-            data=power_data,
-            timestamps=time_seconds,
-            site=ogen_site,
-        )
-        nwbfile.add_stimulus(ogen_series)
+        # --- OptogeneticEpochsTable: one row per real stimulation burst ---
+        from ndx_optogenetics import OptogeneticEpochsTable
 
-        # --- Stimulation episodes as TimeIntervals (onset/offset per real stim burst) ---
-        stim_meta = opto_meta.get("StimulationEpisodes", {})
-        stim_intervals = nwbfile.create_time_intervals(
-            name=stim_meta.get("name"),
-            description=(stim_meta.get("description") or "").format(**fmt_kwargs),
+        epochs_meta = opto_meta.get("OptogeneticEpochsTable", {})
+        epochs_table = OptogeneticEpochsTable(
+            name=epochs_meta.get("name", "optogenetic_epochs"),
+            description=(epochs_meta.get("description") or "").format(**fmt_kwargs),
+            target_tables={"optogenetic_sites": sites_table},
         )
 
-        # Emit one TimeIntervals row per real stimulation burst (excluded bursts already filtered).
-        # `stim_burst_starts_in_true` holds each kept burst's start position within `true_indices`;
-        # look up the matching end position from `burst_boundaries` (same index in the full list).
+        period_ms = 1000.0 / frequency_hz
+        n_sites = len(sites_table)
+        site_indices = list(range(n_sites))
+
         starts_set = set(stim_burst_starts_in_true)
         for burst_idx in range(len(burst_boundaries) - 1):
             b_start = int(burst_boundaries[burst_idx])
             if b_start not in starts_set:
                 continue
             b_end = int(burst_boundaries[burst_idx + 1])
-            episode_onset = true_times[b_start]
-            episode_offset = true_times[b_end - 1]
-            stim_intervals.add_row(start_time=episode_onset, stop_time=episode_offset)
+            episode_onset = float(true_times[b_start])
+            episode_offset = float(true_times[b_end - 1])
+            burst_duration_s = episode_offset - episode_onset
+            n_pulses = max(1, round(burst_duration_s * frequency_hz))
+            epochs_table.add_row(
+                start_time=episode_onset,
+                stop_time=episode_offset,
+                stimulation_on=True,
+                pulse_length_in_ms=pulse_length_ms,
+                period_in_ms=period_ms,
+                number_pulses_per_pulse_train=n_pulses,
+                number_trains=1,
+                intertrain_interval_in_ms=float("nan"),
+                power_in_mW=intensity_mw,
+                wavelength_in_nm=excitation_lambda,
+                optogenetic_sites=site_indices,
+            )
+
+        nwbfile.add_time_intervals(epochs_table)
 
     def _add_optogenetics_metadata(
         self, nwbfile: NWBFile, metadata: dict | None, intensity_mw: float, frequency_hz: float
-    ) -> None:
+    ):
         """Add ndx-optogenetics metadata (devices, virus, injection sites) to the NWBFile.
 
         All structural metadata (coordinates, manufacturers, model numbers, virus info) is read
         from the ``Optogenetics`` section of the metadata dict, which is populated from
         metadata.yaml via the standard neuroconv deep-merge flow in convert_session.py.
         Session-specific values (intensity_mw, frequency_hz) are passed directly.
+
+        Returns the populated ``OptogeneticSitesTable`` for use in ``OptogeneticEpochsTable``.
         """
         from ndx_ophys_devices import Effector, FiberInsertion, ViralVector, ViralVectorInjection
         from ndx_optogenetics import (
@@ -224,9 +220,7 @@ class OptogeneticsTTLInterface(BaseDataInterface):
 
         opto_meta = (metadata or {}).get("Optogenetics", {})
 
-        # Read excitation_lambda early so it can be used in model creation
-        site_meta = opto_meta.get("OptogeneticStimulusSite", {})
-        excitation_lambda = float(site_meta.get("excitation_lambda", 640.0))
+        excitation_lambda = float(opto_meta.get("excitation_lambda", 640.0))
 
         # Common format kwargs for description templates (session-specific values)
         fmt_kwargs = dict(intensity_mw=intensity_mw, frequency_hz=frequency_hz, excitation_lambda=excitation_lambda)
@@ -285,16 +279,6 @@ class OptogeneticsTTLInterface(BaseDataInterface):
             )
             nwbfile.add_device(fiber)
             fiber_objects[fiber_spec["name"]] = fiber
-
-        # --- OptogeneticStimulusSite (required by OptogeneticSeries) ---
-        ogen_site = OptogeneticStimulusSite(
-            name=site_meta.get("name"),
-            description=(site_meta.get("description") or "").format(**fmt_kwargs),
-            device=laser,
-            excitation_lambda=excitation_lambda,
-            location=site_meta.get("location"),
-        )
-        nwbfile.add_ogen_site(ogen_site)
 
         # --- Viral vector ---
         vv_meta = opto_meta.get("ViralVector", {})
@@ -373,3 +357,5 @@ class OptogeneticsTTLInterface(BaseDataInterface):
             optogenetic_virus_injections=OptogeneticVirusInjections(viral_vector_injections=all_injections),
         )
         nwbfile.add_lab_meta_data(opto_experiment_meta)
+
+        return sites_table

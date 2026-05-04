@@ -1,5 +1,6 @@
 Optogenetics:
-  stimulation_software: "Bonsai v2.6.3 (Lopes et al., 2015) + custom Arduino IDE script"
+  stimulation_software: "Bonsai v2.6.3 with custom Arduino IDE script"
+  excitation_lambda: 640.0
 
   ExcitationSourceModel:
     # Cobalt solid-state 640 nm laser. No model number reported in Mantas et al. (2026).
@@ -33,30 +34,11 @@ Optogenetics:
       via custom Arduino script (Arduino IDE) managed through Bonsai v2.6.3. Light output
       calibrated before each experiment with a Thorlabs photodiode power sensor.
 
-  OptogeneticStimulusSite:
-    # Required by OptogeneticSeries (core NWB); links to the laser as device.
-    name: OptogeneticStimulusSite
-    excitation_lambda: 640.0
-    location: "Substantia nigra, compact part"
+  OptogeneticEpochsTable:
+    name: optogenetic_epochs
     description: >-
-      Bilateral SNc optogenetic stimulation site. ChRmine ({excitation_lambda:.0f} nm,
-      {frequency_hz:.0f} Hz, {intensity_mw} mW). ChRmine-oScarlet expressed bilaterally
-      in SNc via Cre/Flp-conditional AAV.
-
-  OptogeneticSeries:
-    name: OptogeneticSeries
-    description: >-
-      Optogenetic stimulation TTL trace. Values represent laser power in watts
-      ({intensity_mw} mW = {intensity_w:.4f} W when on, 0 when off).
-      Protocol: {frequency_hz} Hz pulse train, 1 s stimulation bursts with 3 s
-      inter-stimulation interval. Bilateral SNc ChRmine activation.
-
-  StimulationEpisodes:
-    name: stimulation_episodes
-    description: >-
-      Optogenetic stimulation episodes. Each row represents one stimulation burst
-      (1 s of {frequency_hz:.0f} Hz ChRmine laser in bilateral SNc).
-      Session laser intensity: {intensity_mw} mW, wavelength: {excitation_lambda:.0f} nm.
+      Optogenetic stimulation epochs (ndx-optogenetics OptogeneticEpochsTable). Each row
+      represents one stimulation burst.
 
   OpticalFibers:
     # 200 µm ceramic ferrule, NA 0.22 (RWD Cat# R-FOC-BL200C-22NA). Implanted immediately
@@ -108,7 +90,7 @@ Optogenetics:
         express ChRmine in DAT+ (Cre-recombinase-expressing) dopamine neurons.
 
   VirusInjections:
-    # 300 nL bilateral SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
+    # 300 nL **bilateral** SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
     # {construct_name} is filled at conversion time from the selected ViralVector.
     - name: snc_injection_left
       location: "Substantia nigra, compact part"
