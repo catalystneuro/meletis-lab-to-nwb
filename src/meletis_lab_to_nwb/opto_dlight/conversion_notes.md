@@ -1,7 +1,14 @@
 # Notes concerning the opto+dLight conversion
 
 ## Data Location
-`/Volumes/T9/data/Meletis/opto+dLight/`
+`.../Meletis/opto+dLight/`
+
+## Experiment summary
+
+Water-restricted Anxa1-Flp mice (n=4) freely nosepoked to trigger bilateral SNc laser stimulation
+(640 nm, ChRmine, 40 Hz, 1 s bursts). Striatal dopamine was recorded simultaneously with dLight1.3b fiber photometry
+at two sites (dCP, cCP). Five laser intensities tested per animal (0.1, 0.2, 0.5, 1, 2 mW).
+Corresponds to Extended Data Fig. 7F–J.
 
 ## File Structure
 ```
@@ -19,15 +26,17 @@ opto+dLight/
 ## Data Streams
 
 ### Optogenetic Stimulation (TTL)
-- Format: CSV, no header, 3 columns: ISO timestamp (+01:00 timezone), sample index, boolean
-- Sampling rate: ~143 Hz (measured from data; comment in code saying ~30 Hz is incorrect)
+- Format: CSV, no header, 3 columns: (1) ISO wall-clock timestamp, (2) frame (0-indexed), (3) boolean TTL state
+- **Column 1 is NOT used for timing** — confirmed by Meletis lab: individual wall-clock timestamps are not accurate per sample
+- **Time basis**: session start parsed from filename (`oft_YYYY-MM-DDTHH_MM_SS`); per-sample time = `frame_index / frame_rate`;
+- Sampling rate: OptogeneticsTTLInterface conversion option `video_frame_rate` set to 30.0 Hz (confirmed by Meletis lab)
 - Duration: ~1100-1260s per session
 - Each True value is a brief 1-sample pulse (~7 ms); consecutive True samples separated by < 1s are grouped into one burst
 - The first burst of True values = fiber photometry system activation (excluded)
 - Subsequent bursts = nosepoke-triggered laser stimulation episodes (~1-6s per burst depending on nosepoke clustering)
 - Protocol: 40 Hz laser, 1s stimulation + 3s inter-stimulation interval
 - NeuroConv interface: Custom `OptogeneticsTTLInterface` → `OptogeneticSeries` + `TimeIntervals`
-- Clock synchronization: FP clock and TTL clock are synchronized to within 7 ms (verified by matching FP start at ~8.117s with first TTL True at ~8.124s)
+- Clock alignment: TTL t=0 is session start (from filename); FP `Time(s)` starts at ~8.1 s (system warm-up). Both clocks originate from Bonsai session start, so the ~8.1 s FP offset and the first TTL True (~8.1 s) remain aligned.
 
 ### Fiber Photometry (dLight)
 - **Raw acquisition** (`*_signal.csv`): 3 columns — `time`, `ref` (405 nm isosbestic), `sig` (470 nm signal), arbitrary fluorescence units. Stored as `FiberPhotometryResponseSeries` and `FiberPhotometryResponseSeriesIsosbestic` in `nwbfile.acquisition`.
@@ -42,9 +51,9 @@ opto+dLight/
 
 - 20 sessions total, 4 mice (776769, 776770, 802369, 802372)
 - All anxa1-flp line
-- Two recording sites:
-  - `dStr` (dorsal striatum): mice 776769, 776770 (10 sessions)
-  - `vStr` (ventral striatum): mice 802369, 802372 (10 sessions)
+- Two recording sites (details.csv `group` codes → article nomenclature):
+  - `dStr` → `dCP` (dorsal caudoputamen): mice 776769, 776770 (10 sessions)
+  - `vStr` → `cCP` (central caudoputamen): mice 802369, 802372 (10 sessions)
 - 5 intensities per mouse pair: 0.1, 0.2, 0.5, 1, 2 mW
 - Session timestamp encoded in filename: `oft_YYYY-MM-DDTHH_MM_SS`
 - Timezone: Europe/Stockholm (Karolinska Institutet)
@@ -76,5 +85,5 @@ opto+dLight/
 
 ## Known Issues
 - `start.fp` column in details.csv matches the sample index of the first TTL True value
-- `has_TTL` column is blank for vStr sessions in details.csv but TTL files exist for all 20 sessions
+- `has_TTL` column is blank for cCP (vStr) sessions in details.csv but TTL files exist for all 20 sessions
 - Typo in details.csv column name: `intenisty` (should be `intensity`)
