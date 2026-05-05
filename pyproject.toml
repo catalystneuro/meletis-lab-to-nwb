@@ -20,6 +20,7 @@ dependencies = [
   "ndx-vame",
   "ndx-fiber-photometry",
   "ipykernel>=7.2.0",
+  "nwb-video-widgets>=0.1.7",
 ]
 
 [project.urls]
