@@ -1,14 +1,11 @@
 """Primary script to run to convert all sessions in the open field test dataset."""
 
 import csv
-import datetime
 import traceback
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from pprint import pformat
-from zoneinfo import ZoneInfo
 
-import pandas as pd
 from tqdm import tqdm
 
 from meletis_lab_to_nwb.open_field_test.convert_session import session_to_nwb
@@ -72,30 +69,6 @@ def safe_session_to_nwb(*, session_to_nwb_kwargs: dict, exception_file_path: Pat
             f.write(traceback.format_exc())
 
 
-def _parse_session_date(video_name: str) -> datetime.datetime:
-    """Parse session datetime from video filename, handling both oft_ and tmaze_ prefixes."""
-    if video_name.startswith("oft_"):
-        date_str = video_name[4:]
-    elif video_name.startswith("tmaze_"):
-        date_str = video_name[6:]
-    else:
-        raise ValueError(f"Unexpected video name prefix: {video_name}")
-    return datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(tzinfo=ZoneInfo("Europe/Stockholm"))
-
-
-def _get_sex_from_aligned(aligned_file_path: Path) -> str:
-    """Extract subject sex from aligned CSV if available."""
-    try:
-        df = pd.read_csv(aligned_file_path, nrows=1)
-        if "sex" in df.columns:
-            sex = df["sex"].iloc[0]
-            if isinstance(sex, str) and sex.lower() in ("m", "f"):
-                return sex.upper()
-    except Exception:
-        pass
-    return "U"
-
-
 def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[dict]:
     """Get the kwargs for session_to_nwb for each session in the dataset.
 
@@ -127,32 +100,20 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 print(f"Warning: Pose estimation file not found, skipping: {pose_estimation_file_path}")
                 continue
 
-            session_date = _parse_session_date(video_name)
-
-            # Check for optional data streams
             vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
             vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
             signal_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
             aligned_157_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
 
-            # Get sex from aligned CSV if available
-            sex = _get_sex_from_aligned(aligned_157_path) if aligned_157_path.exists() else "U"
-
             session_kwargs_list.append(
                 dict(
                     video_file_path=video_file_path,
                     pose_estimation_file_path=pose_estimation_file_path,
-                    subject_id=row["mouse.ID"],
-                    session_date=session_date,
-                    group=row["group"],
-                    line=row["line"],
-                    experiment=row["experiment"],
+                    details_row=row,
                     vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
                     vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
                     signal_file_path=signal_path if signal_path.exists() else None,
                     aligned_file_path=aligned_157_path if aligned_157_path.exists() else None,
-                    sex=sex,
-                    ctrl_vs_exp=row.get("ctrl.vs.exp"),
                 )
             )
 

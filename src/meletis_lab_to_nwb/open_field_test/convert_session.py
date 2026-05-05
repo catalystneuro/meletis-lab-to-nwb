@@ -1,5 +1,6 @@
 """Primary script to run to convert a single session of open field test data."""
 
+import csv
 import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -57,22 +58,44 @@ GROUP_FP_CONFIG = {
 }
 
 
+def _parse_session_date(video_name: str) -> datetime.datetime:
+    """Parse session datetime from video filename, handling both oft_ and tmaze_ prefixes."""
+    if video_name.startswith("oft_"):
+        date_str = video_name[4:]
+    elif video_name.startswith("tmaze_"):
+        date_str = video_name[6:]
+    else:
+        raise ValueError(f"Unexpected video name prefix: {video_name}")
+    return datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(tzinfo=ZoneInfo("Europe/Stockholm"))
+
+
+def _get_sex(aligned_file_path: Path | None) -> str:
+    """Extract subject sex from the first row of the aligned CSV, falling back to 'U'."""
+    if aligned_file_path is None:
+        return "U"
+    try:
+        with open(aligned_file_path) as f:
+            reader = csv.DictReader(f)
+            row = next(reader, None)
+            if row and "sex" in row:
+                sex = row["sex"]
+                if isinstance(sex, str) and sex.lower() in ("m", "f"):
+                    return sex.upper()
+    except Exception:
+        pass
+    return "U"
+
+
 def session_to_nwb(
     *,
     video_file_path: str | Path,
     pose_estimation_file_path: str | Path,
     output_dir_path: str | Path,
-    subject_id: str,
-    session_date: datetime.datetime,
-    group: str,
-    line: str,
-    experiment: str,
+    details_row: dict,
     vame_157_file_path: str | Path | None = None,
     vame_36_file_path: str | Path | None = None,
     signal_file_path: str | Path | None = None,
     aligned_file_path: str | Path | None = None,
-    sex: str = "U",
-    ctrl_vs_exp: str | None = None,
     stub_test: bool = False,
     verbose: bool = True,
 ):
@@ -85,17 +108,10 @@ def session_to_nwb(
     pose_estimation_file_path : str or Path
         Path to the DeepLabCut pose estimation output (.csv).
     output_dir_path : str or Path
-        Path to the directory where the NWB file will be saved.
-    subject_id : str
-        The subject identifier (mouse ID).
-    session_date : datetime.datetime
-        The session start time with timezone info.
-    group : str
-        The experimental group (e.g., "6OHDA", "ctrl", "Tetx").
-    line : str
-        The genetic line (e.g., "WT", "Anxa1-flp/DAT-cre").
-    experiment : str
-        The experiment name (e.g., "oft_6OHDA", "oft_fp").
+        Path to the directory where the NWB files will be saved.
+    details_row : dict
+        A dictionary containing session details from the details.csv file, with
+        keys like "mouse.ID", "DoB", "group", "line", and optionally "sex".
     vame_157_file_path : str or Path or None, optional
         Path to VAME 157-motif .npy file, if available.
     vame_36_file_path : str or Path or None, optional
@@ -104,25 +120,29 @@ def session_to_nwb(
         Path to fiber photometry signal CSV, if available.
     aligned_file_path : str or Path or None, optional
         Path to aligned analysis CSV, if available.
-    sex : str, optional
-        Subject sex ("M", "F", or "U"), by default "U".
-    ctrl_vs_exp : str or None, optional
-        Control vs experimental group label.
     stub_test : bool, optional
         If True, only convert a small amount of data for testing, by default False.
     verbose : bool, optional
         If True, print verbose output, by default True.
     """
-    video_file_path = Path(video_file_path)
-    pose_estimation_file_path = Path(pose_estimation_file_path)
-    output_dir_path = Path(output_dir_path)
+    subject_id = details_row["mouse.ID"].replace("_", "-")
+
+    output_dir_path = Path(output_dir_path) / f"sub-{subject_id}"
     if stub_test:
         output_dir_path = output_dir_path / "nwb_stub"
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
+    video_file_path = Path(video_file_path)
+    pose_estimation_file_path = Path(pose_estimation_file_path)
+
     video_name = video_file_path.stem
-    session_id = experiment
-    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{video_name}.nwb"
+    session_id = video_name.replace("_", "-")
+    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}.nwb"
+
+    group = details_row["group"]
+    line = details_row["line"]
+    session_date = _parse_session_date(video_name)
+    sex = _get_sex(Path(aligned_file_path) if aligned_file_path is not None else None)
 
     source_data = dict(
         Video=dict(file_paths=[video_file_path]),
@@ -162,9 +182,14 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    metadata["Subject"]["subject_id"] = subject_id
-    metadata["Subject"]["genotype"] = line
-    metadata["Subject"]["sex"] = sex.upper() if sex and sex.lower() in ("m", "f") else "U"
+    t_zone = ZoneInfo("Europe/Stockholm")
+    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+    metadata["Subject"].update(
+        subject_id=subject_id,
+        sex=sex,
+        genotype=line,
+        date_of_birth=date_of_birth,
+    )
 
     # --- Per-group fiber photometry overrides (only for oft_fp sessions with FP data) ---
     if signal_file_path is not None:
@@ -194,33 +219,23 @@ def session_to_nwb(
     )
 
     if verbose:
-        print(f"Converted {nwbfile_path}")
+        print(f"Converted {nwbfile_path} successfully.")
 
 
 if __name__ == "__main__":
-    import csv
-
     data_dir_path = Path("/Volumes/T9/data/Meletis/oft")
     output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/open_field_test")
-    stub_test = True
+    stub_test = False
 
     details_file_path = data_dir_path / "details.csv"
     with open(details_file_path) as f:
         reader = csv.DictReader(f)
-        # Find a session with fiber photometry signal
+        # Find a session with fiber photometry signal for a meaningful test run.
         for row in reader:
             if row.get("has_signal_df", "").upper() == "TRUE":
                 break
 
     video_name = row["video"]
-
-    # Parse session date from video name (handles both oft_ and tmaze_ prefixes)
-    date_str = video_name.split("_", 1)[1] if video_name.startswith("oft_") else video_name.replace("tmaze_", "")
-    session_date = datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(
-        tzinfo=ZoneInfo("Europe/Stockholm")
-    )
-
-    # Check for optional data streams
     vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
     vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
     signal_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
@@ -230,16 +245,10 @@ if __name__ == "__main__":
         video_file_path=data_dir_path / "videos" / f"{video_name}.mp4",
         pose_estimation_file_path=data_dir_path / "pose_estimation" / f"{video_name}.csv",
         output_dir_path=output_dir_path,
-        subject_id=row["mouse.ID"],
-        session_date=session_date,
-        group=row["group"],
-        line=row["line"],
-        experiment=row["experiment"],
+        details_row=row,
         vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
         vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
         signal_file_path=signal_path if signal_path.exists() else None,
         aligned_file_path=aligned_path if aligned_path.exists() else None,
-        sex="U",
-        ctrl_vs_exp=row.get("ctrl.vs.exp"),
         stub_test=stub_test,
     )
