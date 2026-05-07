@@ -172,8 +172,8 @@ def session_to_nwb(
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
     video_device = load_dict_from_file(behavior_metadata_yaml_path)["VideoDevice"]
-    metadata["Behavior"]["ExternalVideos"]["Video BehaviorVideo"]["device"]["name"] = video_device["name"]
-    metadata["Behavior"]["ExternalVideos"]["Video BehaviorVideo"]["device"]["description"] = video_device["description"]
+    metadata["Behavior"]["ExternalVideos"]["BehaviorVideo"]["device"]["name"] = video_device["name"]
+    metadata["Behavior"]["ExternalVideos"]["BehaviorVideo"]["device"]["description"] = video_device["description"]
 
     converter.run_conversion(
         metadata=metadata,
