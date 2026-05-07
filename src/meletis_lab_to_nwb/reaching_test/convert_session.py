@@ -4,6 +4,8 @@ import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
+from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
@@ -117,6 +119,11 @@ def session_to_nwb(
         conversion_options["Behavior"] = dict(stub_test=stub_test)
 
     converter = ReachingTestNWBConverter(source_data=source_data, verbose=verbose)
+
+    # Set timestamps for DLC from the video file — without a config file, the interface
+    # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
+    timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
+    converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
 
     # --- Metadata assembly ---
     tz = ZoneInfo("Europe/Stockholm")
