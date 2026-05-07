@@ -102,7 +102,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
 
             vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
             vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
-            signal_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
+            signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
             raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
             aligned_157_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
 
