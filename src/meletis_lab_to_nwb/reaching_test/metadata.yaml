@@ -12,7 +12,7 @@ NWBFile:
     Forelimb reaching test for water reward used to quantify motor skill in mouse models
     of selective dopamine-neuron manipulation. Water-restricted mice in a transparent
     reaching chamber reach through a slit to a pump-controlled waterspout. Sessions are
-    recorded laterally at 60 fps with a FLIR camera. Two experimental arms are included:
+    recorded laterally at 60 fps with a FLIR camera (1440 × 1080 px). Two experimental arms are included:
     (1) chronic silencing of Anxa1+ SNc dopamine neurons by Flp-dependent tetanus toxin
     light chain (group `tet` vs. littermate `ctrl`; virus: AAV9-hSyn1-chl-dFRT-EGFP_2A_Flag_
     TeTxLC(rev)-dFRT, VVF Zurich, 300 nL bilateral SNc) and (2) optogenetic silencing of
