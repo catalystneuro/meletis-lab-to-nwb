@@ -93,6 +93,15 @@ def session_to_nwb(
     video_key = f"Video {video_file_path.stem}"
     metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
     metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
+    # Replace the DLC auto-generated camera device with the shared video camera device so
+    # both the video and pose estimation reference the same device object in the NWB file.
+    metadata["PoseEstimation"]["Devices"].pop("CameraPoseEstimationDeepLabCut", None)
+    metadata["PoseEstimation"]["Devices"][video_device["name"]] = {
+        "name": video_device["name"],
+        "description": video_device["description"],
+    }
+    for container in metadata["PoseEstimation"]["PoseEstimationContainers"].values():
+        container["devices"] = [video_device["name"]]
 
     converter.run_conversion(
         metadata=metadata,
