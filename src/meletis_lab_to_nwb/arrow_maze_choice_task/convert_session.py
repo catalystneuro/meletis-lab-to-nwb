@@ -79,7 +79,11 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+    dob_str = details_row.get("DoB", "")
+    if dob_str and dob_str.upper() != "NA":
+        date_of_birth = datetime.datetime.strptime(dob_str, "%d-%b-%y").replace(tzinfo=t_zone)
+    else:
+        date_of_birth = None
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=details_row.get("sex", "u").upper(),
