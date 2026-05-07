@@ -1,3 +1,10 @@
+# Video camera device metadata.
+# Actual resolution confirmed via ffprobe (1440 × 1080); manuscript incorrectly
+# states 800 × 800 px and needs correction before publication (LAB_REVIEW W1).
+VideoDevice:
+  name: "FLIR Camera"
+  description: "FLIR camera, 60 fps, 1440 × 1080 px, positioned laterally."
+
 Behavior:
   ReachingEvents:
     name: reaching_events
@@ -10,7 +17,7 @@ Behavior:
       metadata columns (paw, frame, target/paw pixel coordinates, distances). Event
       times are computed from the annotated video frame index assuming the recording
       frame rate specified on the interface (default 60 fps, matching the FLIR camera
-      used for this experiment). Sessions in which the mouse did not perform any
+      used for this experiment; 1440 × 1080 px). Sessions in which the mouse did not perform any
       attempts have no reaching_events table.
     EventTypes:
       correct:

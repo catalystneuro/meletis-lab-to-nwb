@@ -15,7 +15,8 @@ NWBFile:
     Freely moving forelimb reaching task for water reward. Water-restricted mice in a
     10 x 10 cm enclosure with transparent walls reach through a 1 cm aperture to a
     pump-controlled waterspout positioned 1 cm beyond the wall. Sessions are 15 minutes
-    long and run on 4 consecutive days. Behavior is recorded laterally at 60 fps; fiber
+    long and run on 4 consecutive days. Behavior is recorded laterally at 60 fps (FLIR camera,
+    1440 × 1080 px); fiber
     photometry records either striatal dopamine release via dLight1.3b (dLight_dStr,
     dLight_vStr groups) or SN DAN cell-body calcium activity via GCaMP (fp_dat: DAT-Cre
     pan-DA labeling; fp_anxa1: Anxa1-Flp Anxa1+ DAN subpopulation).
