@@ -5,6 +5,8 @@ import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import numpy as np
+from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.open_field_test import OpenFieldTestNWBConverter
@@ -95,6 +97,7 @@ def session_to_nwb(
     vame_157_file_path: str | Path | None = None,
     vame_36_file_path: str | Path | None = None,
     signal_file_path: str | Path | None = None,
+    raw_signal_file_path: str | Path | None = None,
     aligned_file_path: str | Path | None = None,
     stub_test: bool = False,
     verbose: bool = True,
@@ -117,7 +120,9 @@ def session_to_nwb(
     vame_36_file_path : str or Path or None, optional
         Path to VAME 36-motif .npy file, if available.
     signal_file_path : str or Path or None, optional
-        Path to fiber photometry signal CSV, if available.
+        Path to fiber photometry processed dF/F signal CSV, if available.
+    raw_signal_file_path : str or Path or None, optional
+        Path to the raw fiber photometry acquisition CSV (*_signal.csv), if available.
     aligned_file_path : str or Path or None, optional
         Path to aligned analysis CSV, if available.
     stub_test : bool, optional
@@ -163,9 +168,10 @@ def session_to_nwb(
 
     if signal_file_path is not None:
         fiber_photometry_metadata_path = Path(__file__).parent / "fiber_photometry_metadata.yaml"
-        source_data["FiberPhotometry"] = dict(
-            file_path=str(signal_file_path), metadata_yaml_path=fiber_photometry_metadata_path
-        )
+        fp_source = dict(file_path=str(signal_file_path), metadata_yaml_path=fiber_photometry_metadata_path)
+        if raw_signal_file_path is not None:
+            fp_source["raw_file_path"] = str(raw_signal_file_path)
+        source_data["FiberPhotometry"] = fp_source
         conversion_options["FiberPhotometry"] = dict()
 
     if aligned_file_path is not None:
@@ -173,6 +179,11 @@ def session_to_nwb(
         conversion_options["Behavior"] = dict()
 
     converter = OpenFieldTestNWBConverter(source_data=source_data, verbose=verbose)
+
+    # Set timestamps for DLC from the video file — without a config file, the interface
+    # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
+    timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
+    converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
 
     metadata = converter.get_metadata()
     metadata["NWBFile"]["session_start_time"] = session_date
@@ -256,6 +267,7 @@ if __name__ == "__main__":
     vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
     vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
     signal_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
+    raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
     aligned_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
 
     session_to_nwb(
@@ -266,6 +278,7 @@ if __name__ == "__main__":
         vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
         vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
         signal_file_path=signal_path if signal_path.exists() else None,
+        raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
         aligned_file_path=aligned_path if aligned_path.exists() else None,
         stub_test=stub_test,
     )

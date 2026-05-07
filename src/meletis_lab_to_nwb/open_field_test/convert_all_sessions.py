@@ -103,6 +103,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
             vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
             vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
             signal_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
+            raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
             aligned_157_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
 
             session_kwargs_list.append(
@@ -113,6 +114,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                     vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
                     vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
                     signal_file_path=signal_path if signal_path.exists() else None,
+                    raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
                     aligned_file_path=aligned_157_path if aligned_157_path.exists() else None,
                 )
             )
