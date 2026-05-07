@@ -1,0 +1,50 @@
+# Behavior metadata for the Open Field Test conversion.
+# Edit this file to update device information or kinematic time series labels
+# without touching the Python conversion code.
+
+VideoDevice:
+  # Camera used for open field test (Mantas et al. 2026, methods p. 17).
+  name: "Oryx 10GigE Camera"
+  description: "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, 1440 × 1080 px, positioned beneath the 40x40 cm transparent arena floor."
+
+# Kinematic time series written to processing/behavior/Kinematics.
+# Keys are CSV column names in the aligned analysis files.
+# The VAME/DLC pipeline outputs linear quantities in cm/s and cm;
+# conversion=0.01 maps raw values to SI units (m/s, m).
+# 'acceleration' is only present in aligned_157 files, not aligned_36.
+Kinematics:
+  speed:
+    name: linear_velocity
+    description: "Linear velocity of the body center."
+    unit: "m/s"
+    conversion: 0.01
+  acceleration:
+    name: linear_acceleration
+    description: "Linear acceleration of the body center."
+    unit: "m/s^2"
+    conversion: 0.01
+  angular.speed:
+    name: angular_velocity
+    description: "Angular velocity of body orientation."
+    unit: "rad/s"
+    conversion: 1.0
+  distance.moved:
+    name: distance_moved
+    description: "Distance moved by the body center per frame."
+    unit: "m"
+    conversion: 0.01
+  angular.distance:
+    name: angular_distance
+    description: "Angular distance of body orientation change per frame."
+    unit: "rad"
+    conversion: 1.0
+  speed_snout:
+    name: linear_velocity_snout
+    description: "Linear velocity of the snout."
+    unit: "m/s"
+    conversion: 0.01
+  distance.moved_snout:
+    name: distance_moved_snout
+    description: "Distance moved by the snout per frame."
+    unit: "m"
+    conversion: 0.01

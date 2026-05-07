@@ -5,33 +5,22 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from neuroconv.basedatainterface import BaseDataInterface
+from neuroconv.utils import dict_deep_update, load_dict_from_file
 from pynwb import NWBFile
 from pynwb.base import TimeSeries
 from pynwb.behavior import BehavioralTimeSeries
-
-# Kinematics columns to extract from aligned CSVs.
-# Note: 'acceleration' is only present in aligned_157, not aligned_36.
-KINEMATICS_COLUMNS = {
-    "speed": {"description": "Movement speed of the body center.", "unit": "pixels/s"},
-    "acceleration": {"description": "Movement acceleration of the body center.", "unit": "pixels/s^2"},
-    "angular.speed": {"description": "Angular speed of body orientation.", "unit": "rad/s"},
-    "distance.moved": {"description": "Distance moved by the body center per frame.", "unit": "pixels"},
-    "angular.distance": {"description": "Angular distance of body orientation change per frame.", "unit": "rad"},
-    "speed_snout": {"description": "Movement speed of the snout.", "unit": "pixels/s"},
-    "distance.moved_snout": {"description": "Distance moved by the snout per frame.", "unit": "pixels"},
-}
 
 
 class OpenFieldTestBehaviorInterface(BaseDataInterface):
     """DataInterface for reading aligned analysis CSVs and writing computed kinematics to NWB.
 
     The aligned CSVs contain merged DLC pose, VAME motifs, kinematics, photometry signal,
-    and metadata at 30 Hz. This interface extracts only the kinematics columns (speed,
-    acceleration, angular speed, distances) since other data streams are handled by their
-    own dedicated interfaces.
+    and metadata at 30 Hz. This interface extracts only the kinematics columns (linear/angular
+    velocity, acceleration, distances) since other data streams are handled by their own
+    dedicated interfaces. Linear quantities (cm/s, cm) are stored with conversion=0.01 to SI.
     """
 
-    keywords = ("kinematics", "speed", "acceleration", "locomotion")
+    keywords = ("kinematics", "velocity", "acceleration", "locomotion")
 
     def __init__(self, file_path: str | Path, verbose: bool = True):
         """Initialize OpenFieldTestBehaviorInterface.
@@ -48,6 +37,11 @@ class OpenFieldTestBehaviorInterface(BaseDataInterface):
 
     def get_metadata(self) -> dict:
         metadata = super().get_metadata()
+        behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
+        if behavior_metadata_yaml_path.exists():
+            behavioral_metadata = load_dict_from_file(behavior_metadata_yaml_path)
+            metadata = dict_deep_update(metadata, behavioral_metadata)
+
         return metadata
 
     def add_to_nwbfile(self, nwbfile: NWBFile, metadata: dict | None = None, **kwargs) -> None:
@@ -61,7 +55,8 @@ class OpenFieldTestBehaviorInterface(BaseDataInterface):
 
         behavioral_time_series = BehavioralTimeSeries(name="Kinematics")
 
-        for col_name, col_info in KINEMATICS_COLUMNS.items():
+        behavior_metadata = metadata["Kinematics"]
+        for col_name, col_info in behavior_metadata.items():
             if col_name not in df.columns:
                 continue
 
@@ -69,13 +64,12 @@ class OpenFieldTestBehaviorInterface(BaseDataInterface):
             # Replace NaN with 0.0 for NWB compatibility
             # data = np.nan_to_num(data, nan=0.0)
 
-            # Convert column name with dots to valid NWB name
-            series_name = col_name.replace(".", "_")
             ts = TimeSeries(
-                name=series_name,
+                name=col_info["name"],
                 data=data,
                 rate=30.0,
                 unit=col_info["unit"],
+                conversion=col_info["conversion"],
                 description=col_info["description"],
             )
             behavioral_time_series.add_timeseries(ts)
