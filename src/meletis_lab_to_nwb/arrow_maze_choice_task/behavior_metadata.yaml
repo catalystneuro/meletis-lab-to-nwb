@@ -1,0 +1,9 @@
+# Behavior metadata for the Arrow Maze Choice Task conversion.
+# Edit this file to update device information without touching the Python conversion code.
+
+# Video camera device metadata.
+# Resolution confirmed via ffprobe on actual video files (856 × 818 px);
+# manuscript states 800 × 800 px and needs correction before publication.
+VideoDevice:
+  name: "Oryx 10GigE Camera"
+  description: "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, 856 x 818 px, positioned beneath the 40x40 cm transparent arena floor."

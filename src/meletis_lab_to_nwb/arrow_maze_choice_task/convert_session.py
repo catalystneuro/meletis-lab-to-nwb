@@ -87,12 +87,12 @@ def session_to_nwb(
         date_of_birth=date_of_birth,
     )
 
-    # Update camera device name
-    video_key = f"Video {video_name}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = "Oryx 10GigE Camera"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"][
-        "description"
-    ] = "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, positioned beneath the arena."
+    # Update camera device from behavior_metadata.yaml
+    behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"
+    video_device = load_dict_from_file(behavior_metadata_path)["VideoDevice"]
+    video_key = f"Video {video_file_path.stem}"
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
 
     converter.run_conversion(
         metadata=metadata,
