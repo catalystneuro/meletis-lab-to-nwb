@@ -5,7 +5,7 @@
 VideoDevice:
   # Camera used for open field test (Mantas et al. 2026, methods p. 17).
   name: "Oryx 10GigE Camera"
-  description: "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, 1440 × 1080 px, positioned beneath the 40x40 cm transparent arena floor."
+  description: "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, 800 x 800 px, positioned beneath the 40x40 cm transparent arena floor."
 
 # Kinematic time series written to processing/behavior/Kinematics.
 # Keys are CSV column names in the aligned analysis files.

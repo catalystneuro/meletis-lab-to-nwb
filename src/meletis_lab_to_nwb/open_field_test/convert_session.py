@@ -211,6 +211,14 @@ def session_to_nwb(
         if insertion_key in fiber_insertions:
             metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[insertion_key]
 
+    # Update camera device from behavior_metadata.yaml
+    behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"
+    behavior_metadata = load_dict_from_file(behavior_metadata_path)
+    video_device = behavior_metadata["VideoDevice"]
+    video_key = f"Video {video_name}"
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
+
     converter.run_conversion(
         metadata=metadata,
         nwbfile_path=nwbfile_path,
