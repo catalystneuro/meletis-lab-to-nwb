@@ -26,7 +26,7 @@ Optogenetics:
     # Instance linked to ExcitationSourceModel above via model= parameter.
     # Connected via Doric 200 µm low-autofluorescence patch cord and Thorlabs ceramic sleeves.
     # Power calibrated before each experiment with a Thorlabs photodiode power sensor.
-    name: laser
+    name: cobalt_640nm_laser
     description: >-
       Cobalt 640 nm solid-state laser for bilateral SNc ChRmine optogenetic activation.
       Session intensity: {intensity_mw} mW. Connected via Doric 200 μm low-autofluorescence

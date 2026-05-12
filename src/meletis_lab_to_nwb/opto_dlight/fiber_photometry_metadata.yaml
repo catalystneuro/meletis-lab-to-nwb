@@ -98,8 +98,8 @@ FiberPhotometry:
     name: fiber_photometry_table
     description: "Fiber photometry metadata table."
 
-  DfOverFFiberPhotometryResponseSeries:
-    name: DfOverFFiberPhotometryResponseSeries
+  FiberPhotometrySeriesDfOverF:
+    name:  FiberPhotometrySeriesDfOverF
     description: >-
       Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
       Preprocessing in DoricStudio V5 (Mantas et al. 2026, lines 920-924): raw 470 nm
@@ -139,15 +139,15 @@ FiberPhotometry:
         optogenetic activation of DAT+ (Cre-recombinase-expressing) SNc dopamine neurons
         in DAT-Cre mice.
 
-  RawSignalFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeries
+  FiberPhotometrySeriesRawSignal:
+    name: FiberPhotometrySeriesRawSignal
     description: >-
       Raw 470 nm fluorescence signal from dLight1.3b fiber photometry acquisition
       (DoricStudio V5).
     table_region_description: "470 nm signal channel (raw fluorescence)."
 
-  RawReferenceFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeriesIsosbestic
+  FiberPhotometrySeriesIsosbesticControl:
+    name: FiberPhotometrySeriesIsosbesticControl
     description: >-
       Raw 405 nm isosbestic reference fluorescence from dLight1.3b fiber photometry
       acquisition (DoricStudio V5).
