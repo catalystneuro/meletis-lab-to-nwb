@@ -127,7 +127,7 @@ class FiberPhotometryInterface(BaseDataInterface):
             manufacturer=esm_470_meta.get("manufacturer"),
             source_type=esm_470_meta.get("source_type"),
             excitation_mode=esm_470_meta.get("excitation_mode"),
-            wavelength_range_in_nm=[excitation_wavelength_in_nm, excitation_wavelength_in_nm],
+            wavelength_range_in_nm=esm_470_meta.get("wavelength_range_in_nm"),
         )
         nwbfile.add_device_model(excitation_source_model_signal)
 
@@ -139,7 +139,7 @@ class FiberPhotometryInterface(BaseDataInterface):
             manufacturer=esm_405_meta.get("manufacturer"),
             source_type=esm_405_meta.get("source_type"),
             excitation_mode=esm_405_meta.get("excitation_mode"),
-            wavelength_range_in_nm=[wavelength_405, wavelength_405],
+            wavelength_range_in_nm=esm_405_meta.get("wavelength_range_in_nm"),
         )
         nwbfile.add_device_model(excitation_source_model_isosbestic)
 
@@ -237,7 +237,7 @@ class FiberPhotometryInterface(BaseDataInterface):
         )
 
         # --- Processed dF/F series → ophys processing module ---
-        series_meta = fp_meta.get("DfOverFFiberPhotometryResponseSeries", {})
+        series_meta = fp_meta.get("FiberPhotometrySeriesDfOverF", {})
         dff_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
             region=[0],
             description=series_meta.get("table_region_description") or "",
@@ -274,8 +274,8 @@ class FiberPhotometryInterface(BaseDataInterface):
         if raw_df is not None:
             raw_timestamps = raw_df["time"].values
 
-            raw_sig_meta = fp_meta.get("RawSignalFiberPhotometryResponseSeries", {})
-            raw_ref_meta = fp_meta.get("RawReferenceFiberPhotometryResponseSeries", {})
+            raw_sig_meta = fp_meta.get("FiberPhotometrySeriesRawSignal", {})
+            raw_ref_meta = fp_meta.get("FiberPhotometrySeriesIsosbesticControl", {})
 
             sig_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
                 region=[0],
