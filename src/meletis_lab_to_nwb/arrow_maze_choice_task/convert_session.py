@@ -79,6 +79,18 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
+    # Enrich session description with per-session experimental context from details.csv.
+    # `day` is the training day (day01–day04); `group` is the treatment group
+    # (ctrl, 6ohda, asc.acid, anxa1_tet); `experiment` is the cohort identifier
+    # (tmaze_6ohda or tmaze_anxa1_tet).
+    day = details_row.get("day", "").lstrip("day").lstrip("0") or "0"
+    group = details_row.get("group", "")
+    experiment = details_row.get("experiment", "")
+    base_description = metadata["NWBFile"]["session_description"]
+    metadata["NWBFile"][
+        "session_description"
+    ] = f"Day {day} from group '{group}' cohort '{experiment}'. {base_description}"
+
     date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
     metadata["Subject"].update(
         subject_id=subject_id,
