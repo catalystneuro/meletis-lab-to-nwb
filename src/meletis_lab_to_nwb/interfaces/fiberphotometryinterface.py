@@ -35,8 +35,15 @@ from ndx_ophys_devices import (
 )
 from neuroconv.basedatainterface import BaseDataInterface
 from neuroconv.tools.nwb_helpers import get_module
-from neuroconv.utils import DeepDict, dict_deep_update, load_dict_from_file
+from neuroconv.utils import DeepDict, calculate_regular_series_rate, dict_deep_update, load_dict_from_file
 from pynwb import NWBFile
+
+
+def _rate_or_timestamps(timestamps, rate):
+    """Return kwargs dict with rate+starting_time if rate is regular, else timestamps."""
+    if rate is not None:
+        return {"starting_time": float(timestamps[0]), "rate": rate}
+    return {"timestamps": timestamps}
 
 
 class FiberPhotometryInterface(BaseDataInterface):
@@ -242,13 +249,14 @@ class FiberPhotometryInterface(BaseDataInterface):
             region=[0],
             description=series_meta.get("table_region_description") or "",
         )
+        dff_rate = calculate_regular_series_rate(timestamps, tolerance_decimals=6)
         response_series = FiberPhotometryResponseSeries(
             name=series_meta.get("name"),
             description=(series_meta.get("description") or "").format(
                 indicator_label=indicator_label, signal_column=signal_column
             ),
             data=signal_data,
-            timestamps=timestamps,
+            **_rate_or_timestamps(timestamps, dff_rate),
             unit="a.u.",
             fiber_photometry_table_region=dff_table_region,
         )
@@ -273,6 +281,7 @@ class FiberPhotometryInterface(BaseDataInterface):
         # --- Raw acquisition series (optional) → nwbfile.acquisition ---
         if raw_df is not None:
             raw_timestamps = raw_df["time"].values
+            raw_rate = calculate_regular_series_rate(raw_timestamps, tolerance_decimals=6)
 
             raw_sig_meta = fp_meta.get("FiberPhotometrySeriesRawSignal", {})
             raw_ref_meta = fp_meta.get("FiberPhotometrySeriesIsosbesticControl", {})
@@ -290,7 +299,7 @@ class FiberPhotometryInterface(BaseDataInterface):
                 name=raw_sig_meta.get("name"),
                 description=raw_sig_meta.get("description") or "",
                 data=raw_df["sig"].values,
-                timestamps=raw_timestamps,
+                **_rate_or_timestamps(raw_timestamps, raw_rate),
                 unit="a.u.",
                 fiber_photometry_table_region=sig_table_region,
             )
@@ -298,7 +307,7 @@ class FiberPhotometryInterface(BaseDataInterface):
                 name=raw_ref_meta.get("name"),
                 description=raw_ref_meta.get("description") or "",
                 data=raw_df["ref"].values,
-                timestamps=raw_timestamps,
+                **_rate_or_timestamps(raw_timestamps, raw_rate),
                 unit="a.u.",
                 fiber_photometry_table_region=ref_table_region,
             )
