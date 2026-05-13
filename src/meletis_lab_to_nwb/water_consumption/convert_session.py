@@ -117,7 +117,7 @@ def session_to_nwb(
     behavior_file_path = Path(behavior_file_path)
     video_stem = details_row["video"]  # e.g. reaching_test_2024-04-23T10_04_21
     session_id = video_stem.replace("_", "-")
-    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}.nwb"
+    nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}_behavior+image.nwb"
 
     # --- Assemble source_data ---
     fp_source = dict(
