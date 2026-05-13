@@ -148,7 +148,7 @@ FiberPhotometry:
   ProcessingModule:
     name: ophys
     description: >-
-      Processed optical physiology data. Contains motion-corrected dF/F fluorescence
+      Processed optical physiology data. Contains isosbestic-corrected dF/F fluorescence
       signals from the reaching task for water reward fiber photometry recordings.
 
   FiberPhotometryLabMetaData:
@@ -161,7 +161,7 @@ FiberPhotometry:
   FiberPhotometrySeriesDfOverF:
     name: FiberPhotometrySeriesDfOverF
     description: >-
-      Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
+      Isosbestic-corrected dF/F fiber photometry signal for indicator {indicator_label}.
       Preprocessing in DoricStudio V5: raw 470 nm
       and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
       filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
