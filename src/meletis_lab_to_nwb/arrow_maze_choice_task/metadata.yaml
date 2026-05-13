@@ -28,7 +28,5 @@ NWBFile:
     - Skara, Vasiliki
 Subject:
   species: Mus musculus
-  sex: U  # TODO: update with per-subject metadata
   strain: C57BL/6N
-  age: P2M/P6M  # TODO: update with per-subject metadata
   description: Mouse on C57BL/6N background, aged 2-6 months at time of experiment.
