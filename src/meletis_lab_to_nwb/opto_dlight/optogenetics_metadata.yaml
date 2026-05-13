@@ -1,62 +1,52 @@
 Optogenetics:
-  stimulation_software: "Bonsai v2.6.3 (Lopes et al., 2015) + custom Arduino IDE script"
+  stimulation_software: "Bonsai v2.6.3 with custom Arduino IDE script"
+  excitation_lambda: 640.0
 
   ExcitationSourceModel:
     # Cobalt solid-state 640 nm laser. No model number reported in Mantas et al. (2026).
     # source_type and excitation_mode follow ndx-optogenetics suggested values.
+    # wavelength_range_in_nm: for a solid-state laser the emission is essentially a single line.
+    # Typical Cobolt DPSS laser wavelength tolerance is ±2 nm; use [638.0, 642.0] as a conservative
+    # estimate until the exact device datasheet/model number is confirmed with the lab.
     name: cobalt_640nm_laser_model
     manufacturer: Cobalt
+    # model_number: ""  # e.g. Cobolt Mambo 100 or similar — not reported in manuscript; confirm with lab
     source_type: "Solid-State Laser"
     excitation_mode: "one-photon"
-    # wavelength_range_in_nm is computed from excitation_lambda in code
-    # (avoids dict_deep_update deduplication of equal values in a list)
+    wavelength_range_in_nm: [638.0, 642.0]  # laser emission ~640 nm ±2 nm; confirm from device datasheet
+    # description: ""  # optional free-form description of this device model
 
   OpticalFiberModel:
     # RWD Cat# R-FOC-BL200C-22NA. Specs from Mantas et al. (2026), Implant placement, line 652-653.
-    # ferrule_diameter_in_mm not reported in manuscript (standard LC = 1.25 mm, but not confirmed).
     name: RWD_R-FOC-BL200C-22NA_model
     manufacturer: RWD
     model_number: R-FOC-BL200C-22NA
     numerical_aperture: 0.22
     core_diameter_in_um: 200.0
     ferrule_name: "ceramic ferrule"
+    # ferrule_model: ""  # ferrule catalog ID — not reported in manuscript
+    # ferrule_diameter_in_mm:  # 1.25 mm (LC) or 2.5 mm (FC); not confirmed in manuscript
+    # active_length_in_mm:  # only for tapered fibers; not applicable here
 
   ExcitationSource:
     # Instance linked to ExcitationSourceModel above via model= parameter.
     # Connected via Doric 200 µm low-autofluorescence patch cord and Thorlabs ceramic sleeves.
     # Power calibrated before each experiment with a Thorlabs photodiode power sensor.
-    name: laser
+    # Note: power_in_W is set in code from session-specific intensity_mw (convert_session.py).
+    name: cobalt_640nm_laser
     description: >-
       Cobalt 640 nm solid-state laser for bilateral SNc ChRmine optogenetic activation.
       Session intensity: {intensity_mw} mW. Connected via Doric 200 μm low-autofluorescence
       patch cord and Thorlabs ceramic sleeves. Photostimulation frequency and duration controlled
       via custom Arduino script (Arduino IDE) managed through Bonsai v2.6.3. Light output
       calibrated before each experiment with a Thorlabs photodiode power sensor.
+    # intensity_in_W_per_m2:  # irradiance at fiber tip or tissue;
+    # exposure_time_in_s:  # cumulative or per-pulse exposure; pulse duration tracked in OptogeneticEpochsTable
 
-  OptogeneticStimulusSite:
-    # Required by OptogeneticSeries (core NWB); links to the laser as device.
-    name: OptogeneticStimulusSite
-    excitation_lambda: 640.0
-    location: "Substantia nigra, compact part"
+  OptogeneticEpochsTable:
+    name: optogenetic_epochs
     description: >-
-      Bilateral SNc optogenetic stimulation site. ChRmine ({excitation_lambda:.0f} nm,
-      {frequency_hz:.0f} Hz, {intensity_mw} mW). ChRmine-oScarlet expressed bilaterally
-      in SNc via Cre/Flp-conditional AAV.
-
-  OptogeneticSeries:
-    name: OptogeneticSeries
-    description: >-
-      Optogenetic stimulation TTL trace. Values represent laser power in watts
-      ({intensity_mw} mW = {intensity_w:.4f} W when on, 0 when off).
-      Protocol: {frequency_hz} Hz pulse train, 1 s stimulation bursts with 3 s
-      inter-stimulation interval. Bilateral SNc ChRmine activation.
-
-  StimulationEpisodes:
-    name: stimulation_episodes
-    description: >-
-      Optogenetic stimulation episodes. Each row represents one stimulation burst
-      (1 s of {frequency_hz:.0f} Hz ChRmine laser in bilateral SNc).
-      Session laser intensity: {intensity_mw} mW, wavelength: {excitation_lambda:.0f} nm.
+      Optogenetic stimulation epochs, each row represents one stimulation burst.
 
   OpticalFibers:
     # 200 µm ceramic ferrule, NA 0.22 (RWD Cat# R-FOC-BL200C-22NA). Implanted immediately
@@ -108,7 +98,7 @@ Optogenetics:
         express ChRmine in DAT+ (Cre-recombinase-expressing) dopamine neurons.
 
   VirusInjections:
-    # 300 nL bilateral SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
+    # 300 nL **bilateral** SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
     # {construct_name} is filled at conversion time from the selected ViralVector.
     - name: snc_injection_left
       location: "Substantia nigra, compact part"

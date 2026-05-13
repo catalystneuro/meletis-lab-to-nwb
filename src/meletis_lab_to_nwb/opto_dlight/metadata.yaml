@@ -16,7 +16,7 @@ NWBFile:
     delivered a 1-second train of laser pulses followed by a 3-second inter-stimulation
     interval. Fiber photometry (470 nm excitation, dLight1.3b indicator) recorded striatal
     dopamine dynamics during the self-stimulation task. Two recording sites were used: dorsal
-    striatum (dStr) and ventral striatum (vStr). Multiple laser intensities (0.1, 0.2, 0.5,
+    caudoputamen (dCP) and central caudoputamen (cCP). Multiple laser intensities (0.1, 0.2, 0.5,
     1, 2 mW) were tested across sessions.
   session_description: |
     Optogenetic self-stimulation session. A water-restricted mouse freely nosepoked to trigger
