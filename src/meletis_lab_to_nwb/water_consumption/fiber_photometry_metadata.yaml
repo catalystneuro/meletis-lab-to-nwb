@@ -1,9 +1,10 @@
 FiberPhotometry:
-  # Session-specific indicator_label and location are overridden in convert_session.py
+  # Per-group overrides for location and indicator_label are applied in convert_session.py
   # based on the `group` column in details.csv:
-  #   fp_dat / fp_anxa1   → jGCaMP8m, fiber in dCP recording axonal signals from SNc DANs
-  #   dLight_dStr         → dLight1.3b, fiber in dCP
-  #   dLight_vStr         → dLight1.3b, fiber in cCP
+  #   dLight_dStr → dCP (dorsal caudoputamen), dLight1.3b
+  #   dLight_vStr → cCP (central caudoputamen), dLight1.3b
+  #   fp_dat      → dCP, jGCaMP8m (axonal GCaMP from SNc DANs, DAT-Cre)
+  #   fp_anxa1    → dCP, jGCaMP8m (axonal GCaMP from SNc DANs, Anxa1-Flp)
   # Placeholder defaults below apply to the dLight-in-striatum case.
   location: Caudoputamen
   indicator_label: dLight1.3b
@@ -11,44 +12,79 @@ FiberPhotometry:
   emission_wavelength_in_nm: 525.0
 
   ExcitationSourceModel_470nm:
-    # 470 nm LED for signal channel. Doric system (ref 101 in Mantas et al. 2026).
+    # 470 nm LED for signal channel. Doric CLED-G2 system.
     # Power and model number not reported in the manuscript for the reaching-task cohort.
+    # Hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657), cited as ref 101
+    # in Mantas et al. 2026.
+    # Sources:
+    #  - Doric Connectorized LED (CLED-G2) product page (https://neuro.doriclenses.com/products/cled)
+    #  - Doric Connectorized LEDs & LED Drivers User Manual (https://doriclenses.com/downloads/UserManual/UserManual_CLED_V1.1.4.pdf)
+    # Peak wavelength: 470 nm; FWHM: ~27 nm → wavelength_range [456.5, 483.5] nm.
+    # The 470 nm and 405 nm LEDs are DIFFERENT device models (different peak wavelength and FWHM)
+    # within the same CLED-G2 series and cannot share one ExcitationSourceModel.
+    # Exact CLED-G2 catalog/ordering code not publicly listed — confirm with lab or Doric Lenses.
     name: doric_470nm_led_model
     manufacturer: Doric
+    model_number: CLED-G2-470
     source_type: "LED"
     excitation_mode: "one-photon"
-    # wavelength_range_in_nm is computed from excitation_wavelength_in_nm in code.
+    wavelength_range_in_nm: [456.5, 483.5]  # peak 470 nm, FWHM ~27 nm; source: https://neuro.doriclenses.com/products/cled
+    # description: ""  # optional free-form description of this device model
 
   ExcitationSourceModel_405nm:
-    # 405 nm LED for isosbestic reference channel.
+    # 405 nm LED for isosbestic reference channel. Doric CLED-G2 system.
+    # Power and model number not reported in the manuscript for the reaching-task cohort.
+    # Hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657), cited as ref 101
+    # in Mantas et al. 2026.
+    # Sources:
+    #  - Doric Connectorized LED (CLED-G2) product page (https://neuro.doriclenses.com/products/cled)
+    #  - Doric Connectorized LEDs & LED Drivers User Manual (https://doriclenses.com/downloads/UserManual/UserManual_CLED_V1.1.4.pdf)
+    # Peak wavelength: 405 nm; FWHM: ~12 nm → wavelength_range [399.0, 411.0] nm.
+    # Exact CLED-G2 catalog/ordering code not publicly listed — confirm with lab or Doric Lenses.
     name: doric_405nm_led_model
     manufacturer: Doric
+    model_number: CLED-G2-405
     source_type: "LED"
     excitation_mode: "one-photon"
-    wavelength_in_nm: 405.0
+    wavelength_in_nm: 405.0  # helper: code reads this for the FiberPhotometryTable isosbestic row
+    wavelength_range_in_nm: [399.0, 411.0]  # peak 405 nm, FWHM ~12 nm; source: https://neuro.doriclenses.com/products/cled
+    # description: ""  # optional free-form description of this device model
 
   OpticalFiberModel:
     # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric.
-    # All groups (dLight_dStr, dLight_vStr, fp_dat, fp_anxa1) use the same Doric 400 µm
-    # cannula implanted in the dCP or cCP.
+    # Specs from Mantas et al. (2026), Implant placement, lines 656-658.
+    # No model number reported in manuscript.
     name: doric_400um_cannula_model
     manufacturer: Doric
+    # model_number: ""  # Doric fiber optic cannula catalog number — not reported in manuscript
     numerical_aperture: 0.22
     core_diameter_in_um: 400.0
     ferrule_name: "ceramic ferrule"
+    # ferrule_model: ""  # ferrule catalog/product ID — not reported in manuscript
+    # ferrule_diameter_in_mm:  # 2.5 mm for FC-type ceramic ferrule (standard), not reported in manuscript
+    # active_length_in_mm:  # optional, not reported in manuscript
 
   ExcitationSourceSignal:
+    # 470 nm signal channel LED instance, linked to ExcitationSourceModel_470nm via model=.
     name: excitation_source_signal
     description: >-
       470 nm Doric LED for fiber photometry signal-channel excitation. Interleaved with
       the 405 nm isosbestic reference via DoricStudio V5 software.
+    # power_in_W:  # Incident power at ferrule tip in Watts (e.g. 25e-6 for 25 µW); session-specific
+    # intensity_in_W_per_m2:  # Irradiance at tissue; rarely reported for fiber photometry
+    # exposure_time_in_s:  # Only relevant for pulsed/gated acquisition
 
   ExcitationSourceIsosbestic:
+    # 405 nm isosbestic reference LED instance, linked to ExcitationSourceModel_405nm via model=.
     name: excitation_source_isosbestic
     description: >-
       405 nm Doric LED for fiber photometry isosbestic-reference excitation.
+      Delivered through DoricStudio V5 software.
+    # power_in_W:  # Incident power at ferrule tip in Watts (e.g. 20e-6 for 20 µW); session-specific
+    # intensity_in_W_per_m2:  # Irradiance at tissue; rarely reported for fiber photometry
+    # exposure_time_in_s:  # Only relevant for pulsed/gated acquisition
 
-  # FiberInsertion is injected per-session by convert_session.py based on details.csv `group`.
+  # FiberInsertion is NOT set here — it is injected per-session by convert_session.py.
   # All four groups use a Doric 400 µm cannula; right hemisphere for all sessions.
   # Coordinates confirmed by the lab (Mantas et al. 2026, Implant placement, lines 656-658):
   #   dLight_dStr / fp_dat / fp_anxa1 → dCP (AP +0.74, ML ±1.5, DV −2.2)
@@ -60,23 +96,32 @@ FiberPhotometry:
   #   dLight_vStr                   → cCP
   FiberInsertions:
     dCP:
-      # Dorsal caudoputamen. Confirmed by lab (Mantas et al. 2026, lines 656-658).
+      # Dorsal caudoputamen coordinates from Mantas et al. 2026.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.74
       insertion_position_ml_in_mm: 1.5
       insertion_position_dv_in_mm: -2.2
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
+      # depth_in_mm:  # depth driven along insertion_angle from surface (distinct from DV coordinate)
+      # insertion_angle_yaw_in_deg:  # rotation around DV axis; 0 = sagittal plane
+      # insertion_angle_pitch_in_deg:  # rotation around ML axis; 0 = axial plane
+      # insertion_angle_roll_in_deg:  # rotation around AP axis; 0 = coronal plane
     cCP:
-      # Central caudoputamen. Confirmed by lab (Mantas et al. 2026, lines 656-658).
+      # Central caudoputamen coordinates from Mantas et al. 2026.
       name: fiber_insertion
       insertion_position_ap_in_mm: 0.38
       insertion_position_ml_in_mm: 2.0
       insertion_position_dv_in_mm: -2.9
       position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
       hemisphere: right
+      # depth_in_mm:  # depth driven along insertion_angle from surface
+      # insertion_angle_yaw_in_deg:  # rotation around DV axis
+      # insertion_angle_pitch_in_deg:  # rotation around ML axis
+      # insertion_angle_roll_in_deg:  # rotation around AP axis
 
   OpticalFiber:
+    # Optical fiber instance for photometry recording, linked to OpticalFiberModel via model=.
     name: optical_fiber_cpu
     description: >-
       Doric 400 µm ceramic ferrule fiber optic cannula implanted in the dorsal caudoputamen
@@ -84,25 +129,37 @@ FiberPhotometry:
       axonal GCaMP signals from SN→dCP projections; for dLight groups it records dopamine
       release. Per-session location is stored in the FiberPhotometryTable.
 
+  # PhotodetectorModel: device model for the photodetector (ndx-ophys-devices PhotodetectorModel).
+  # Uncomment and populate if photodetector model is known.
+  # PhotodetectorModel:
+  #   name: ""  # model name, e.g. "doric_femto_photodetector_model"
+  #   manufacturer: "Doric"
+  #   model_number: ""  # catalog number — not reported in manuscript
+  #   detector_type: "Photodiode"  # required: CCD, Intensified CCD, PMT, Photodiode, CMOS, EBCCD, FTIR
+  #   wavelength_range_in_nm: [400.0, 700.0]  # detectable wavelength range
+  #   gain:  # numeric gain value
+  #   gain_unit: ""  # e.g. "V/V", "dB"
+
   Photodetector:
     name: photodetector
     description: "Photodetector for fiber photometry signal and reference channels."
+    # model link: add PhotodetectorModel above and link via model= in code
 
   ProcessingModule:
     name: ophys
     description: >-
       Processed optical physiology data. Contains motion-corrected dF/F fluorescence
-      signals from the reaching-task fiber photometry recordings.
+      signals from the reaching task for water reward fiber photometry recordings.
 
   FiberPhotometryLabMetaData:
     name: fiber_photometry
 
   FiberPhotometryTable:
     name: fiber_photometry_table
-    description: "Fiber photometry metadata table for the reaching task."
+    description: "Fiber photometry metadata table for the reaching task for water reward."
 
-  DfOverFFiberPhotometryResponseSeries:
-    name: DfOverFFiberPhotometryResponseSeries
+  FiberPhotometrySeriesDfOverF:
+    name: FiberPhotometrySeriesDfOverF
     description: >-
       Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
       Preprocessing in DoricStudio V5: raw 470 nm
@@ -110,7 +167,7 @@ FiberPhotometry:
       filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
       to the 470 nm baseline and subtracted to remove shared artifacts (motion,
       photobleaching).
-    table_region_description: "470 nm signal channel (dF/F)."
+    table_region_description: "470 nm signal channel."
 
   Indicator:
     # Default values apply to dLight_dStr and dLight_vStr groups (dLight1.3b in striatum).
@@ -126,14 +183,14 @@ FiberPhotometry:
       plasmid #125560). Delivered via unilateral striatal injection into the dorsal
       caudoputamen (dCP; dLight_dStr group) or central caudoputamen (cCP; dLight_vStr group).
 
-  RawSignalFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeries
+  FiberPhotometrySeriesRawSignal:
+    name: FiberPhotometrySeriesRawSignal
     description: >-
       Raw 470 nm fluorescence signal from fiber photometry acquisition (DoricStudio V5).
     table_region_description: "470 nm signal channel (raw fluorescence)."
 
-  RawReferenceFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeriesIsosbestic
+  FiberPhotometrySeriesIsosbesticControl:
+    name: FiberPhotometrySeriesIsosbesticControl
     description: >-
       Raw 405 nm isosbestic reference fluorescence from fiber photometry acquisition
       (DoricStudio V5).
