@@ -104,10 +104,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 dict(
                     video_file_path=video_file_path,
                     pose_estimation_file_path=pose_estimation_file_path,
-                    subject_id=row["mouse.ID"],
-                    line=row["line"],
-                    day=row["day"],
-                    experiment=row["experiment"],
+                    details_row=dict(row),
                 )
             )
 
@@ -116,7 +113,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
 
 if __name__ == "__main__":
     data_dir_path = Path("/Volumes/T9/data/Meletis/tmaze")
-    output_dir_path = Path("/Volumes/T9/data/Meletis/nwb_output/arrow_maze_choice_task")
+    output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/arrow_maze_choice_task")
     max_workers = 4
     stub_test = False
 
