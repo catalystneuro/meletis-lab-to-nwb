@@ -44,40 +44,17 @@ resolution of the same question in the opto+dLight conversion. Updated in `conve
 
 ---
 
-## W4. Are there sessions without manual annotations, or with empty spout ≡ no reach?
+## ~~W4. Are there sessions without manual annotations, or with empty spout ≡ no reach?~~ ✓ Resolved
 
-**Observation.** Across 59 annotation files, the event count per session ranges from **2 to 82**
+**Confirmed by the lab**: for sessions with ≤5 annotated events, the low count a true reflection
+of behavior.
+Across 59 annotation files, the event count per session ranges from **2 to 82**
 (median 27). Some sessions have very few events (e.g., `low signal`, `learning`, `very few
 trials` noted in `details.csv.obs`).
 
-**Why it matters.** A session with 2 annotated events is either (a) a training day with low
-engagement (the mouse didn't reach much) or (b) an incomplete annotation pass. The NWB file
-shouldn't conflate the two.
-
-**What to ask.** For sessions with ≤5 annotated events, is the low count a true reflection
-of behavior, or are there additional unscored reaches?
-
 ---
 
-## W5. What is the definition of each `event.type` value?
-
-**Observation.** Observed values: `correct`, `miss`, `empty`, `drop`, `semidrop`,
-`missed` (4 rows, appears to be a typo for `miss`), `emopty` (1 row, typo for `empty`).
-
-**Why it matters.** These categorical labels become part of the NWB `event_type` column
-with user-facing descriptions. We've guessed definitions (correct = successful grasp,
-miss = no contact, empty = reach at empty spout, drop = water dropped after grasp,
-semidrop = partial drop) but they are not stated in the manuscript methods.
-
-**Current behavior.** `behaviorinterface.py.EVENT_TYPE_NORMALIZATION` folds `missed` →
-`miss` and `emopty` → `empty`. `semidrop` is kept verbatim (4 occurrences).
-
-**What to ask.** Can the lab confirm the operational definition of each `event.type`
-value, and confirm that `missed`/`emopty` are indeed typos for `miss`/`empty`?
-
----
-
-## ~~W6. Alignment between the behavior video and the fiber photometry stream~~ ✓ Resolved
+## ~~W5. Alignment between the behavior video and the fiber photometry stream~~ ✓ Resolved
 
 **Confirmed by the lab**: Bonsai starts the video recording and simultaneously synchronizes
 the fiber photometry system at session start. No additional alignment step is needed.

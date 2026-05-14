@@ -79,11 +79,19 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    dob_str = details_row.get("DoB", "")
-    if dob_str and dob_str.upper() != "NA":
-        date_of_birth = datetime.datetime.strptime(dob_str, "%d-%b-%y").replace(tzinfo=t_zone)
-    else:
-        date_of_birth = None
+    # Enrich session description with per-session experimental context from details.csv.
+    # `day` is the training day (day01–day04); `group` is the treatment group
+    # (ctrl, 6ohda, asc.acid, anxa1_tet); `experiment` is the cohort identifier
+    # (tmaze_6ohda or tmaze_anxa1_tet).
+    day = details_row.get("day", "").lstrip("day").lstrip("0") or "0"
+    group = details_row.get("group", "")
+    experiment = details_row.get("experiment", "")
+    base_description = metadata["NWBFile"]["session_description"]
+    metadata["NWBFile"][
+        "session_description"
+    ] = f"Day {day} from group '{group}' cohort '{experiment}'. {base_description}"
+
+    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=details_row.get("sex", "u").upper(),
@@ -91,12 +99,21 @@ def session_to_nwb(
         date_of_birth=date_of_birth,
     )
 
-    # Update camera device name
-    video_key = f"Video {video_name}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = "Oryx 10GigE Camera"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"][
-        "description"
-    ] = "Oryx 10GigE camera (Hamamatsu Photonics), 30 fps, positioned beneath the arena."
+    # Update camera device from behavior_metadata.yaml
+    behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"
+    video_device = load_dict_from_file(behavior_metadata_path)["VideoDevice"]
+    video_key = f"Video {video_file_path.stem}"
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
+    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
+    # Replace the DLC auto-generated camera device with the shared video camera device so
+    # both the video and pose estimation reference the same device object in the NWB file.
+    metadata["PoseEstimation"]["Devices"].pop("CameraPoseEstimationDeepLabCut", None)
+    metadata["PoseEstimation"]["Devices"][video_device["name"]] = {
+        "name": video_device["name"],
+        "description": video_device["description"],
+    }
+    for container in metadata["PoseEstimation"]["PoseEstimationContainers"].values():
+        container["devices"] = [video_device["name"]]
 
     converter.run_conversion(
         metadata=metadata,
