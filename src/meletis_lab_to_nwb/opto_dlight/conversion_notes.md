@@ -39,8 +39,8 @@ opto+dLight/
 - Clock alignment: TTL t=0 is session start (from filename); FP `Time(s)` starts at ~8.1 s (system warm-up). Both clocks originate from Bonsai session start, so the ~8.1 s FP offset and the first TTL True (~8.1 s) remain aligned.
 
 ### Fiber Photometry (dLight)
-- **Raw acquisition** (`*_signal.csv`): 3 columns — `time`, `ref` (405 nm isosbestic), `sig` (470 nm signal), arbitrary fluorescence units. Stored as `FiberPhotometryResponseSeries` and `FiberPhotometryResponseSeriesIsosbestic` in `nwbfile.acquisition`.
-- **Processed dF/F** (`*_signal_df.csv`): 2 columns — `Time(s)` and motion-corrected dF/F (sig - ref). Stored as `DfOverFFiberPhotometryResponseSeries` in `processing/ophys/`.
+- **Raw acquisition** (`*_signal.csv`): 3 columns — `time`, `ref` (405 nm isosbestic), `sig` (470 nm signal), arbitrary fluorescence units. Stored as `FiberPhotometrySeriesRawSignal` and `FiberPhotometrySeriesIsosbesticControl` in `nwbfile.acquisition`.
+- **Processed dF/F** (`*_signal_df.csv`): 2 columns — `Time(s)` and motion-corrected dF/F (sig - ref). Stored as `FiberPhotometrySeriesDfOverF` in `processing/ophys/`.
 - Sampling rate: ~60 Hz
 - Timestamps start at ~8s (fiber photometry system warm-up)
 - Indicator: dLight1.3b (dopamine sensor)

@@ -226,15 +226,13 @@ class OptogeneticsTTLInterface(BaseDataInterface):
         fmt_kwargs = dict(intensity_mw=intensity_mw, frequency_hz=frequency_hz, excitation_lambda=excitation_lambda)
 
         # --- ExcitationSourceModel: manufacturer/specs for the laser type ---
-        # wavelength_range_in_nm is computed from excitation_lambda rather than read from YAML
-        # to avoid dict_deep_update deduplicating [640, 640] → [640].
         esm_meta = opto_meta.get("ExcitationSourceModel", {})
         laser_model = ExcitationSourceModel(
             name=esm_meta.get("name"),
             manufacturer=esm_meta.get("manufacturer"),
             source_type=esm_meta.get("source_type"),
             excitation_mode=esm_meta.get("excitation_mode"),
-            wavelength_range_in_nm=[excitation_lambda, excitation_lambda],
+            wavelength_range_in_nm=esm_meta.get("wavelength_range_in_nm"),
         )
         nwbfile.add_device_model(laser_model)
 
