@@ -12,22 +12,29 @@ FiberPhotometry:
   emission_wavelength_in_nm: 525.0
 
   ExcitationSourceModel_470nm:
-    # 470 nm LED for signal channel. Doric system (ref 101 in Mantas et al. 2026).
-    # Power 20-30 µW (Mantas et al. 2026, line 917-918).
+    # 470 nm LED for signal channel. Power 20-30 µW (Mantas et al. 2026, lines 917-918).
+    # Doric CLED-G2 system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657),
+    # cited as ref 101 in Mantas et al. 2026.
+    # Peak wavelength: 470 nm; FWHM: ~27 nm → wavelength_range [456.5, 483.5] nm.
     name: doric_470nm_led_model
     manufacturer: Doric
+    model_number: CLED-G2-470
     source_type: "LED"
     excitation_mode: "one-photon"
-    # wavelength_range_in_nm is computed from excitation_wavelength_in_nm in code.
+    wavelength_range_in_nm: [456.5, 483.5]  # peak 470 nm, FWHM ~27 nm; source: https://neuro.doriclenses.com/products/cled
 
   ExcitationSourceModel_405nm:
-    # 405 nm LED for isosbestic reference channel.
-    # Power 15-25 µW (Mantas et al. 2026, line 918-919).
+    # 405 nm LED for isosbestic reference channel. Power 15-25 µW (Mantas et al. 2026, lines 918-919).
+    # Doric CLED-G2 system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657),
+    # cited as ref 101 in Mantas et al. 2026.
+    # Peak wavelength: 405 nm; FWHM: ~12 nm → wavelength_range [399.0, 411.0] nm.
     name: doric_405nm_led_model
     manufacturer: Doric
+    model_number: CLED-G2-405
     source_type: "LED"
     excitation_mode: "one-photon"
-    wavelength_in_nm: 405.0
+    wavelength_in_nm: 405.0  # helper: code reads this for the FiberPhotometryTable isosbestic row
+    wavelength_range_in_nm: [399.0, 411.0]  # peak 405 nm, FWHM ~12 nm; source: https://neuro.doriclenses.com/products/cled
 
   OpticalFiberModel:
     # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric.
@@ -97,18 +104,18 @@ FiberPhotometry:
     name: fiber_photometry_table
     description: "Fiber photometry metadata table for the open field test."
 
-  DfOverFFiberPhotometryResponseSeries:
-    name: DfOverFFiberPhotometryResponseSeries
+  FiberPhotometrySeriesDfOverF:
+    name: FiberPhotometrySeriesDfOverF
     description: >-
-      Motion-corrected dF/F fiber photometry signal for indicator {indicator_label}.
-      Preprocessing in DoricStudio V5 (Mantas et al. 2026, lines 920-924): raw 470 nm
+      Isosbestic-corrected dF/F fiber photometry signal for indicator {indicator_label}.
+      Preprocessing in DoricStudio V5: raw 470 nm
       and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
       filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
       to the 470 nm baseline and subtracted to remove shared artifacts (motion,
       photobleaching). Acquired via interleaved 470/405 nm LED excitation at ~60 Hz.
       Corrected dF/F traces were aligned to behavioral events (VAME motif onsets) for
       downstream peri-event analyses. Original signal column: {signal_column}.
-    table_region_description: "470 nm signal channel (dF/F)."
+    table_region_description: "470 nm signal channel."
 
   # Indicator is NOT set here — it is injected per-session by convert_session.py based on
   # the `group` column in details.csv. Keys match the same group labels used in the
@@ -173,14 +180,14 @@ FiberPhotometry:
         into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
         AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
 
-  RawSignalFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeries
+  FiberPhotometrySeriesRawSignal:
+    name: FiberPhotometrySeriesRawSignal
     description: >-
       Raw 470 nm fluorescence signal from fiber photometry acquisition (DoricStudio V5).
     table_region_description: "470 nm signal channel (raw fluorescence)."
 
-  RawReferenceFiberPhotometryResponseSeries:
-    name: FiberPhotometryResponseSeriesIsosbestic
+  FiberPhotometrySeriesIsosbesticControl:
+    name: FiberPhotometrySeriesIsosbesticControl
     description: >-
       Raw 405 nm isosbestic reference fluorescence from fiber photometry acquisition
       (DoricStudio V5).
