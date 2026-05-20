@@ -18,6 +18,8 @@ dependencies = [
   "neuroconv==0.9.1",
   "nwbinspector",
   "ndx-vame",
+  "ipykernel>=7.2.0",
+  "nwb-video-widgets>=0.1.7",
   "ndx-fiber-photometry==0.2.3",
   "ndx-optogenetics==0.4.0",
 ]
