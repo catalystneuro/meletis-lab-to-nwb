@@ -1,4 +1,4 @@
-"""Primary script to run to convert all sessions in the arrow maze choice task dataset."""
+"""Primary script to run to convert all sessions in the opto+dLight dataset."""
 
 import csv
 import traceback
@@ -8,7 +8,7 @@ from pprint import pformat
 
 from tqdm import tqdm
 
-from meletis_lab_to_nwb.arrow_maze_choice_task.convert_session import session_to_nwb
+from meletis_lab_to_nwb.opto_dlight.convert_session import session_to_nwb
 
 
 def dataset_to_nwb(
@@ -19,7 +19,7 @@ def dataset_to_nwb(
     stub_test: bool = False,
     verbose: bool = True,
 ):
-    """Convert the entire arrow maze choice task dataset to NWB.
+    """Convert the entire opto+dLight dataset to NWB.
 
     Parameters
     ----------
@@ -44,7 +44,7 @@ def dataset_to_nwb(
             session_to_nwb_kwargs["output_dir_path"] = output_dir_path
             session_to_nwb_kwargs["stub_test"] = stub_test
             session_to_nwb_kwargs["verbose"] = verbose
-            video_name = Path(session_to_nwb_kwargs["video_file_path"]).stem
+            video_name = Path(session_to_nwb_kwargs["ttl_file_path"]).stem
             exception_file_path = output_dir_path / f"ERROR_{video_name}.txt"
             futures.append(
                 executor.submit(
@@ -89,31 +89,34 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
     with open(details_file_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            video_name = row["video"]
-            video_file_path = data_dir_path / "videos" / f"{video_name}.mp4"
-            pose_estimation_file_path = data_dir_path / "pose_estimation" / f"{video_name}.csv"
-
-            if not video_file_path.exists():
-                print(f"Warning: Video file not found, skipping: {video_file_path}")
-                continue
-            if not pose_estimation_file_path.exists():
-                print(f"Warning: Pose estimation file not found, skipping: {pose_estimation_file_path}")
+            video_name = row.get("video", "").strip()
+            if not video_name:
                 continue
 
-            session_kwargs_list.append(
-                dict(
-                    video_file_path=video_file_path,
-                    pose_estimation_file_path=pose_estimation_file_path,
-                    details_row=dict(row),
-                )
+            ttl_file_path = data_dir_path / "TTL" / f"{video_name}.csv"
+            signal_file_path = data_dir_path / "signal" / f"{video_name}_signal_df.csv"
+            raw_signal_file_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
+
+            if not ttl_file_path.exists() and not signal_file_path.exists():
+                print(f"Warning: No TTL or signal file found, skipping: {video_name}")
+                continue
+
+            session_kwargs = dict(
+                ttl_file_path=ttl_file_path,
+                signal_file_path=signal_file_path,
+                details_row=row,
             )
+            if raw_signal_file_path.exists():
+                session_kwargs["raw_signal_file_path"] = raw_signal_file_path
+
+            session_kwargs_list.append(session_kwargs)
 
     return session_kwargs_list
 
 
 if __name__ == "__main__":
-    data_dir_path = Path("/Volumes/T9/data/Meletis/tmaze")
-    output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/arrow_maze_choice_task")
+    data_dir_path = Path("/Volumes/T9/data/Meletis/opto+dLight")
+    output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/opto_dlight")
     max_workers = 4
     stub_test = False
 

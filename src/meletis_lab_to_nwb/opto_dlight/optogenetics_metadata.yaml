@@ -1,0 +1,152 @@
+Optogenetics:
+  stimulation_software: "Bonsai v2.6.3 with custom Arduino IDE script"
+  excitation_lambda: 640.0
+
+  ExcitationSourceModel:
+    # Cobalt solid-state 640 nm laser. No model number reported in Mantas et al. (2026).
+    # source_type and excitation_mode follow ndx-optogenetics suggested values.
+    # wavelength_range_in_nm: for a solid-state laser the emission is essentially a single line.
+    # Typical Cobolt DPSS laser wavelength tolerance is ±2 nm; use [638.0, 642.0] as a conservative
+    # estimate until the exact device datasheet/model number is confirmed with the lab.
+    name: cobalt_640nm_laser_model
+    manufacturer: Cobalt
+    # model_number: ""  # e.g. Cobolt Mambo 100 or similar — not reported in manuscript; confirm with lab
+    source_type: "Solid-State Laser"
+    excitation_mode: "one-photon"
+    wavelength_range_in_nm: [638.0, 642.0]  # laser emission ~640 nm ±2 nm; confirm from device datasheet
+    # description: ""  # optional free-form description of this device model
+
+  OpticalFiberModel:
+    # RWD Cat# R-FOC-BL200C-22NA. Specs from Mantas et al. (2026), Implant placement, line 652-653.
+    name: RWD_R-FOC-BL200C-22NA_model
+    manufacturer: RWD
+    model_number: R-FOC-BL200C-22NA
+    numerical_aperture: 0.22
+    core_diameter_in_um: 200.0
+    ferrule_name: "ceramic ferrule"
+    # ferrule_model: ""  # ferrule catalog ID — not reported in manuscript
+    # ferrule_diameter_in_mm:  # 1.25 mm (LC) or 2.5 mm (FC); not confirmed in manuscript
+    # active_length_in_mm:  # only for tapered fibers; not applicable here
+
+  ExcitationSource:
+    # Instance linked to ExcitationSourceModel above via model= parameter.
+    # Connected via Doric 200 µm low-autofluorescence patch cord and Thorlabs ceramic sleeves.
+    # Power calibrated before each experiment with a Thorlabs photodiode power sensor.
+    # Note: power_in_W is set in code from session-specific intensity_mw (convert_session.py).
+    name: cobalt_640nm_laser
+    description: >-
+      Cobalt 640 nm solid-state laser for bilateral SNc ChRmine optogenetic activation.
+      Session intensity: {intensity_mw} mW. Connected via Doric 200 μm low-autofluorescence
+      patch cord and Thorlabs ceramic sleeves. Photostimulation frequency and duration controlled
+      via custom Arduino script (Arduino IDE) managed through Bonsai v2.6.3. Light output
+      calibrated before each experiment with a Thorlabs photodiode power sensor.
+    # intensity_in_W_per_m2:  # irradiance at fiber tip or tissue;
+    # exposure_time_in_s:  # cumulative or per-pulse exposure; pulse duration tracked in OptogeneticEpochsTable
+
+  OptogeneticEpochsTable:
+    name: optogenetic_epochs
+    description: >-
+      Optogenetic stimulation epochs, each row represents one stimulation burst.
+
+  OpticalFibers:
+    # 200 µm ceramic ferrule, NA 0.22 (RWD Cat# R-FOC-BL200C-22NA). Implanted immediately
+    # after virus injection (Implant placement, Mantas et al. 2026, lines 655-656).
+    - name: optical_fiber_snc_left
+      hemisphere: left
+      insertion_position_ap_in_mm: -3.09
+      insertion_position_ml_in_mm: -1.25
+      insertion_position_dv_in_mm: -3.9
+      position_reference: "bregma at the cortical surface"
+      description: >-
+        Left-hemisphere optical fiber for SNc optogenetic stimulation (ChRmine, 640 nm).
+        Implanted immediately after virus injection.
+    - name: optical_fiber_snc_right
+      hemisphere: right
+      insertion_position_ap_in_mm: -3.09
+      insertion_position_ml_in_mm: 1.25
+      insertion_position_dv_in_mm: -3.9
+      position_reference: "bregma at the cortical surface"
+      description: >-
+        Right-hemisphere optical fiber for SNc optogenetic stimulation (ChRmine, 640 nm).
+        Implanted immediately after virus injection.
+
+  # ViralVector is NOT set here — it is injected per-session by convert_session.py based on
+  # details.csv `line` (anxa1-flp → #137160 Coff/Fon; dat-cre → #137161 Con/Foff 2.0).
+  # The two possible entries are defined under ViralVectors below for reference.
+  ViralVectors:
+    anxa1-flp:
+      # Flp-dependent (Coff/Fon) AAV8. Used with Anxa1-Flp mice to express ChRmine
+      # selectively in Anxa1+ (Flp+) SNc dopamine neurons.
+      name: chrmine_virus
+      construct_name: "AAV8-nEF-Coff/Fon-ChRmine-oScarlet"
+      manufacturer: Addgene
+      titer_in_vg_per_ml: 1.0e13
+      description: >-
+        Addgene #137160. Flp-dependent (Cre-OFF/Flp-ON) AAV8 expressing ChRmine-oScarlet
+        under the nEF promoter. Injected bilaterally into SNc of Anxa1-Flp mice to selectively
+        express ChRmine in Anxa1+ (Flp-recombinase-expressing) dopamine neurons.
+    dat-cre:
+      # Cre-dependent (Con/Foff 2.0) AAV8. Used with DAT-Cre mice to express ChRmine
+      # selectively in DAT+ (Cre+) SNc dopamine neurons.
+      name: chrmine_virus
+      construct_name: "AAV8-nEF-Con/Foff 2.0-ChRmine-oScarlet"
+      manufacturer: Addgene
+      titer_in_vg_per_ml: 1.0e13
+      description: >-
+        Addgene #137161. Cre-dependent (Cre-ON/Flp-OFF) AAV8 expressing ChRmine-oScarlet
+        under the nEF promoter. Injected bilaterally into SNc of DAT-Cre mice to selectively
+        express ChRmine in DAT+ (Cre-recombinase-expressing) dopamine neurons.
+
+  VirusInjections:
+    # 300 nL **bilateral** SNc injections. Coordinates from Mantas et al. 2026 (lines 612-637).
+    # {construct_name} is filled at conversion time from the selected ViralVector.
+    - name: snc_injection_left
+      location: "Substantia nigra, compact part"
+      hemisphere: left
+      reference: "bregma at the cortical surface"
+      ap_in_mm: -3.09
+      ml_in_mm: -1.25
+      dv_in_mm: -4.2
+      volume_in_uL: 0.3
+      description: "{volume_nL:.0f} nL left SNc injection of {construct_name}."
+    - name: snc_injection_right
+      location: "Substantia nigra, compact part"
+      hemisphere: right
+      reference: "bregma at the cortical surface"
+      ap_in_mm: -3.09
+      ml_in_mm: 1.25
+      dv_in_mm: -4.2
+      volume_in_uL: 0.3
+      description: "{volume_nL:.0f} nL right SNc injection of {construct_name}."
+
+  Effectors:
+    # ChRmine-oScarlet expressed in SNc dopamine neurons via Cre/Flp-conditional AAV.
+    # Exact cell population depends on mouse line (Anxa1+ for Anxa1-Flp; DAT+ for DAT-Cre).
+    - name: ChRmine_left
+      label: ChRmine
+      manufacturer: Addgene
+      description: >-
+        Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, left hemisphere. Expressed
+        in SNc dopamine neurons via Cre/Flp-conditional AAV (construct per mouse line).
+        Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
+        train, 1 s bursts.
+    - name: ChRmine_right
+      label: ChRmine
+      manufacturer: Addgene
+      description: >-
+        Red-shifted channelrhodopsin (ChRmine) fused to oScarlet, right hemisphere. Expressed
+        in SNc dopamine neurons via Cre/Flp-conditional AAV (construct per mouse line).
+        Excitation: {excitation_lambda:.0f} nm; stimulation: {frequency_hz:.0f} Hz pulse
+        train, 1 s bursts.
+
+  OptogeneticSitesTable:
+    description: >-
+      Bilateral SNc optogenetic stimulation sites. SNc dopamine neurons express
+      ChRmine-oScarlet via Cre/Flp-conditional AAV (Addgene #137160 for Anxa1-Flp mice;
+      #137161 for DAT-Cre mice) and are stimulated with a Cobalt {excitation_lambda:.0f} nm
+      laser via 200 μm optic fibers (RWD, R-FOC-BL200C-22NA, NA 0.22).
+    columns:
+      - name: excitation_source
+        description: "Laser used for optogenetic stimulation."
+      - name: optical_fiber
+        description: "Implanted optical fiber."

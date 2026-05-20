@@ -1,4 +1,4 @@
-"""Primary script to run to convert all sessions in the arrow maze choice task dataset."""
+"""Primary script to run to convert all sessions in the reaching_test dataset."""
 
 import csv
 import traceback
@@ -8,7 +8,7 @@ from pprint import pformat
 
 from tqdm import tqdm
 
-from meletis_lab_to_nwb.arrow_maze_choice_task.convert_session import session_to_nwb
+from meletis_lab_to_nwb.reaching_test.convert_session import session_to_nwb
 
 
 def dataset_to_nwb(
@@ -19,37 +19,29 @@ def dataset_to_nwb(
     stub_test: bool = False,
     verbose: bool = True,
 ):
-    """Convert the entire arrow maze choice task dataset to NWB.
+    """Convert the entire reaching_test dataset to NWB.
 
-    Parameters
-    ----------
-    data_dir_path : str or Path
-        The path to the directory containing the raw data.
-    output_dir_path : str or Path
-        The path to the directory where the NWB files will be saved.
-    max_workers : int, optional
-        The number of workers to use for parallel processing, by default 1.
-    stub_test : bool, optional
-        If True, only convert a small amount of data for testing, by default False.
-    verbose : bool, optional
-        Whether to print verbose output, by default True.
+    Iterates rows of ``details.csv`` and dispatches one ``session_to_nwb`` job per
+    session. Sessions without a manual annotation CSV (``has_behavior`` FALSE; the
+    mouse performed no reach attempts) are still converted and get a video +
+    pose-estimation NWB file with no reaching_events table.
     """
     data_dir_path = Path(data_dir_path)
     output_dir_path = Path(output_dir_path)
-    session_to_nwb_kwargs_per_session = get_session_to_nwb_kwargs_per_session(data_dir_path=data_dir_path)
+    session_kwargs_per_session = get_session_to_nwb_kwargs_per_session(data_dir_path=data_dir_path)
 
     futures = []
     with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        for session_to_nwb_kwargs in session_to_nwb_kwargs_per_session:
-            session_to_nwb_kwargs["output_dir_path"] = output_dir_path
-            session_to_nwb_kwargs["stub_test"] = stub_test
-            session_to_nwb_kwargs["verbose"] = verbose
-            video_name = Path(session_to_nwb_kwargs["video_file_path"]).stem
+        for session_kwargs in session_kwargs_per_session:
+            session_kwargs["output_dir_path"] = output_dir_path
+            session_kwargs["stub_test"] = stub_test
+            session_kwargs["verbose"] = verbose
+            video_name = Path(session_kwargs["video_file_path"]).stem
             exception_file_path = output_dir_path / f"ERROR_{video_name}.txt"
             futures.append(
                 executor.submit(
                     safe_session_to_nwb,
-                    session_to_nwb_kwargs=session_to_nwb_kwargs,
+                    session_to_nwb_kwargs=session_kwargs,
                     exception_file_path=exception_file_path,
                 )
             )
@@ -58,7 +50,7 @@ def dataset_to_nwb(
 
 
 def safe_session_to_nwb(*, session_to_nwb_kwargs: dict, exception_file_path: Path | str):
-    """Convert a session to NWB while handling any errors by recording error messages to the exception_file_path."""
+    """Convert a session to NWB while recording any error to ``exception_file_path``."""
     exception_file_path = Path(exception_file_path)
     try:
         session_to_nwb(**session_to_nwb_kwargs)
@@ -70,28 +62,23 @@ def safe_session_to_nwb(*, session_to_nwb_kwargs: dict, exception_file_path: Pat
 
 
 def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[dict]:
-    """Get the kwargs for session_to_nwb for each session in the dataset.
-
-    Parameters
-    ----------
-    data_dir_path : str or Path
-        The path to the directory containing the raw data.
-
-    Returns
-    -------
-    list[dict]
-        A list of dictionaries containing the kwargs for session_to_nwb for each session.
-    """
+    """Build the per-session kwargs list from ``details.csv`` and the data directory layout."""
     data_dir_path = Path(data_dir_path)
     details_file_path = data_dir_path / "details.csv"
 
-    session_kwargs_list = []
+    session_kwargs_list: list[dict] = []
     with open(details_file_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            video_name = row["video"]
-            video_file_path = data_dir_path / "videos" / f"{video_name}.mp4"
-            pose_estimation_file_path = data_dir_path / "pose_estimation" / f"{video_name}.csv"
+            video_stem = (row.get("video") or "").strip()
+            if not video_stem:
+                continue
+
+            video_file_path = data_dir_path / "videos" / f"{video_stem}.avi"
+            pose_estimation_file_path = (
+                data_dir_path / "pose_estimation" / f"{video_stem}DLC_resnet50_reaching_trainJun9shuffle1_100000.csv"
+            )
+            behavior_file_path = data_dir_path / "annotations" / f"{video_stem}_behavior.csv"
 
             if not video_file_path.exists():
                 print(f"Warning: Video file not found, skipping: {video_file_path}")
@@ -104,7 +91,8 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 dict(
                     video_file_path=video_file_path,
                     pose_estimation_file_path=pose_estimation_file_path,
-                    details_row=dict(row),
+                    behavior_file_path=behavior_file_path if behavior_file_path.exists() else None,
+                    details_row=row,
                 )
             )
 
@@ -112,8 +100,8 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
 
 
 if __name__ == "__main__":
-    data_dir_path = Path("/Volumes/T9/data/Meletis/tmaze")
-    output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/arrow_maze_choice_task")
+    data_dir_path = Path("/Volumes/T9/data/Meletis/reaching_test")
+    output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/reaching_test")
     max_workers = 4
     stub_test = False
 

@@ -15,7 +15,7 @@ NWBFile:
     trained over 4 consecutive days in 10-minute sessions. Two cohorts were tested — a 6-OHDA
     dopamine lesion model (WT mice) and an Anxa1-TetTox genetic dopamine neuron ablation
     model (Anxa1-Flp mice). Sessions were recorded from below at 30 fps using an Oryx 10GigE
-    camera (Hamamatsu Photonics), and pose estimation was performed using DeepLabCut.
+    camera (Hamamatsu Photonics, 856 x 818 px), and pose estimation was performed using DeepLabCut.
   session_description:
     Arrow maze choice task (T-maze) session. A water-restricted mouse navigated a T-maze
     with two lateral corridors, learning to associate the left corridor with a water reward over
@@ -28,7 +28,5 @@ NWBFile:
     - Skara, Vasiliki
 Subject:
   species: Mus musculus
-  sex: U  # TODO: update with per-subject metadata
   strain: C57BL/6N
-  age: P2M/P6M  # TODO: update with per-subject metadata
   description: Mouse on C57BL/6N background, aged 2-6 months at time of experiment.

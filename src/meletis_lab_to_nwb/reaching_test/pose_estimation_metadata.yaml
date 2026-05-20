@@ -1,0 +1,31 @@
+PoseEstimation:
+  # Overrides applied on top of the metadata that DeepLabCutInterface generates from the
+  # scorer line of the DLC output file. Keyed by the pose_estimation_metadata_key passed
+  # on the interface (default "PoseEstimationDeepLabCut").
+  PoseEstimationContainers:
+    PoseEstimationDeepLabCut:
+      name: PoseEstimationReaching
+      description: |
+        DeepLabCut pose estimation for the forelimb reaching test. Eight keypoints were
+        tracked on the lateral behavior video: snout, tongue, palm, wrist, elbow, mouth
+        (reach target reference on the animal), spout (reach target on the rig).
+      scorer: DLC_resnet50_reaching_trainJun9shuffle1_100000
+      source_software: DeepLabCut
+
+  Skeletons:
+    SkeletonReaching:
+      name: SkeletonReaching
+      nodes:
+        - snout
+        - tongue
+        - palm
+        - wrist
+        - elbow
+        - mouth
+        - spout
+        - extra
+      edges:
+        - [2, 3]  # palm -- wrist
+        - [3, 4]  # wrist -- elbow
+        - [0, 5]  # snout -- mouth
+        - [1, 5]  # tongue -- mouth

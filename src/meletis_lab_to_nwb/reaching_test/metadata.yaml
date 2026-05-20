@@ -1,0 +1,41 @@
+NWBFile:
+  keywords:
+    - forelimb reaching
+    - water reward
+    - DeepLabCut
+    - pose estimation
+    - Anxa1
+    - dopamine
+  related_publications:
+    - doi:10.1101/2024.12.22.629963
+  experiment_description: |
+    Forelimb reaching test for water reward used to quantify motor skill in mouse models
+    of selective dopamine-neuron manipulation. Water-restricted mice in a transparent
+    reaching chamber reach through a slit to a pump-controlled waterspout. Sessions are
+    recorded laterally at 60 fps with a FLIR camera (1440 × 1080 px). Two experimental arms are included:
+    (1) chronic silencing of Anxa1+ SNc dopamine neurons by Flp-dependent tetanus toxin
+    light chain (group `tet` vs. littermate `ctrl`; virus: AAV9-hSyn1-chl-dFRT-EGFP_2A_Flag_
+    TeTxLC(rev)-dFRT, VVF Zurich, 300 nL bilateral SNc) and (2) optogenetic silencing of
+    Anxa1+ SNc dopamine neurons with Archaerhodopsin (group `arch_anxa1` vs. `arch_ctrl`;
+    virus: AAV8-nEF-Coff/Fon-Arch3.3-p2a-eYFP, Addgene #137150, 300 nL bilateral SNc),
+    with multiple test days per mouse
+    and, for the Arch cohort, different light conditions. Each attempt is scored manually from the lateral
+    video; pose estimation of the snout, tongue, paw, wrist, elbow, mouth, spout, and an
+    extra reference keypoint was produced with DeepLabCut.
+  session_description: |
+    Forelimb reaching-for-water session. The lateral behavior video is referenced
+    externally and accompanied by manual reach-attempt annotations (when the mouse
+    performed any attempts) and DeepLabCut pose-estimation traces. Per-session cohort
+    (`group`, `line`), test-day phase, and Arch light condition are exposed in the
+    session metadata.
+  institution: Karolinska Institutet
+  lab: Meletis
+  experimenter:
+    - Mantas, Ioannis
+    - Contestabile, Alessandro
+    - Skara, Vasiliki
+
+Subject:
+  species: Mus musculus
+  strain: C57BL/6N
+  description: Mouse on C57BL/6N background, aged 2-6 months at time of experiment.
