@@ -1,3 +1,2 @@
 from .behaviorinterface import OpenFieldTestBehaviorInterface
 from .nwbconverter import OpenFieldTestNWBConverter
-from .vameinterface import VAMEInterface
