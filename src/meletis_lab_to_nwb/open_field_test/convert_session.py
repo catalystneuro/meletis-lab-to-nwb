@@ -170,8 +170,11 @@ def session_to_nwb(
         vame_source_data["latent_vectors_file_path"] = vame_latent_vector_file_path
     if vame_config_file_path is not None:
         vame_source_data["vame_config_file_path"] = vame_config_file_path
+    vame_source_data["vame_project_metadata_key"] = "VAME_42"
     vame_source_data["sampling_frequency_hz"] = 30.0
     vame_source_data["pose_estimation_name"] = pose_estimation_name
+    source_data["VAME"] = vame_source_data
+    conversion_options["VAME"] = dict(stub_test=stub_test)
 
     if signal_file_path is not None:
         fiber_photometry_metadata_path = Path(__file__).parent / "fiber_photometry_metadata.yaml"
@@ -272,7 +275,7 @@ if __name__ == "__main__":
 
     video_name = row["video"]
     vame_project_path = data_dir_path / "NEW_vame"
-    vame_motif_path = vame_project_path / f"47_km_label_{video_name}.npy"
+    vame_motif_path = vame_project_path / f"42_km_label_{video_name}.npy"
     vame_latent_vector_path = vame_project_path / f"latent_vector_{video_name}.npy"
     vame_config_path = vame_project_path / "config.yaml"
     signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
