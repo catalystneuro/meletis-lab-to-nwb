@@ -94,8 +94,9 @@ def session_to_nwb(
     pose_estimation_file_path: str | Path,
     output_dir_path: str | Path,
     details_row: dict,
-    vame_157_file_path: str | Path | None = None,
-    vame_36_file_path: str | Path | None = None,
+    vame_motif_file_path: str | Path | None = None,
+    vame_latent_vector_file_path: str | Path | None = None,
+    vame_config_file_path: str | Path | None = None,
     signal_file_path: str | Path | None = None,
     raw_signal_file_path: str | Path | None = None,
     aligned_file_path: str | Path | None = None,
@@ -115,10 +116,10 @@ def session_to_nwb(
     details_row : dict
         A dictionary containing session details from the details.csv file, with
         keys like "mouse.ID", "DoB", "group", "line", and optionally "sex".
-    vame_157_file_path : str or Path or None, optional
-        Path to VAME 157-motif .npy file, if available.
-    vame_36_file_path : str or Path or None, optional
-        Path to VAME 36-motif .npy file, if available.
+    vame_motif_file_path : str or Path or None, optional
+        Path to VAME motif .npy file, if available.
+    vame_latent_vector_file_path : str or Path or None, optional
+        Path to VAME latent vector .npy file, if available.
     signal_file_path : str or Path or None, optional
         Path to fiber photometry processed dF/F signal CSV, if available.
     raw_signal_file_path : str or Path or None, optional
@@ -149,22 +150,28 @@ def session_to_nwb(
     session_date = _parse_session_date(video_name)
     sex = _get_sex(Path(aligned_file_path) if aligned_file_path is not None else None)
 
+    pose_estimation_name = "PoseEstimationDeepLabCut"
     source_data = dict(
         Video=dict(file_paths=[video_file_path]),
-        PoseEstimation=dict(file_path=str(pose_estimation_file_path)),
+        PoseEstimation=dict(
+            file_path=str(pose_estimation_file_path), pose_estimation_metadata_key=pose_estimation_name
+        ),
     )
     conversion_options = dict(
         Video=dict(),
         PoseEstimation=dict(),
     )
 
-    if vame_157_file_path is not None:
-        source_data["VAME157"] = dict(file_path=str(vame_157_file_path), name_suffix="157")
-        conversion_options["VAME157"] = dict()
-
-    if vame_36_file_path is not None:
-        source_data["VAME36"] = dict(file_path=str(vame_36_file_path), name_suffix="36")
-        conversion_options["VAME36"] = dict()
+    vame_source_data = dict()
+    # TODO: check timestamps in aligned data
+    if vame_motif_file_path is not None:
+        vame_source_data["motif_labels_file_path"] = vame_motif_file_path
+    if vame_latent_vector_file_path is not None:
+        vame_source_data["latent_vectors_file_path"] = vame_latent_vector_file_path
+    if vame_config_file_path is not None:
+        vame_source_data["vame_config_file_path"] = vame_config_file_path
+    vame_source_data["sampling_frequency_hz"] = 30.0
+    vame_source_data["pose_estimation_name"] = pose_estimation_name
 
     if signal_file_path is not None:
         fiber_photometry_metadata_path = Path(__file__).parent / "fiber_photometry_metadata.yaml"
@@ -264,8 +271,10 @@ if __name__ == "__main__":
                 break
 
     video_name = row["video"]
-    vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
-    vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
+    vame_project_path = data_dir_path / "NEW_vame"
+    vame_motif_path = vame_project_path / f"47_km_label_{video_name}.npy"
+    vame_latent_vector_path = vame_project_path / f"latent_vector_{video_name}.npy"
+    vame_config_path = vame_project_path / "config.yaml"
     signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
     raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
     aligned_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
@@ -275,8 +284,9 @@ if __name__ == "__main__":
         pose_estimation_file_path=data_dir_path / "pose_estimation" / f"{video_name}.csv",
         output_dir_path=output_dir_path,
         details_row=row,
-        vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
-        vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
+        vame_motif_file_path=vame_motif_path,
+        vame_latent_vector_file_path=vame_latent_vector_path,
+        vame_config_file_path=vame_config_path,
         signal_file_path=signal_path if signal_path.exists() else None,
         raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
         aligned_file_path=aligned_path if aligned_path.exists() else None,
