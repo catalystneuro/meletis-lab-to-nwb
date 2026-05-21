@@ -100,8 +100,10 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                 print(f"Warning: Pose estimation file not found, skipping: {pose_estimation_file_path}")
                 continue
 
-            vame_157_path = data_dir_path / "vame_157" / f"47_km_label_{video_name}.npy"
-            vame_36_path = data_dir_path / "vame_36" / f"47_km_label_{video_name}.npy"
+            vame_project_path = data_dir_path / "NEW_vame"
+            vame_motif_path = vame_project_path / f"42_km_label_{video_name}.npy"
+            vame_latent_vector_path = vame_project_path / f"latent_vector_{video_name}.npy"
+            vame_config_path = vame_project_path / "config.yaml"
             signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
             raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
             aligned_157_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
@@ -111,8 +113,9 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                     video_file_path=video_file_path,
                     pose_estimation_file_path=pose_estimation_file_path,
                     details_row=row,
-                    vame_157_file_path=vame_157_path if vame_157_path.exists() else None,
-                    vame_36_file_path=vame_36_path if vame_36_path.exists() else None,
+                    vame_motif_file_path=vame_motif_path if vame_motif_path.exists() else None,
+                    vame_latent_vector_file_path=vame_latent_vector_path if vame_latent_vector_path.exists() else None,
+                    vame_config_file_path=vame_config_path if vame_config_path.exists() else None,
                     signal_file_path=signal_path if signal_path.exists() else None,
                     raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
                     aligned_file_path=aligned_157_path if aligned_157_path.exists() else None,
