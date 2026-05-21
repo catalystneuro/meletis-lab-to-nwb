@@ -13,20 +13,22 @@ oft/
 ├── pose_estimation/
 │   ├── oft_2023-05-16T15_31_06.csv          # 161 DLC CSV files (1:1 with videos)
 │   └── ...
-├── vame_157/
-│   ├── 47_km_label_oft_2023-05-16T15_31_06.npy  # 157 VAME motif label files
+├── NEW_vame/
+│   ├── config.yaml                                          # Shared VAME project config
+│   ├── 42_km_label_oft_2023-05-16T15_31_06.npy             # VAME motif label files
+│   ├── latent_vector_oft_2023-05-16T15_31_06.npy           # VAME latent vector files
 │   └── ...
-├── vame_36/
-│   ├── 47_km_label_oft_2023-05-16T15_31_06.npy  # 36 VAME motif label files (subset)
+├── signal_df/
+│   ├── oft_2023-11-28T14_52_48_signal_df.csv  # 31 processed dF/F signal files
 │   └── ...
 ├── signal/
-│   ├── oft_2023-11-28T14_52_48_signal_df.csv  # 31 fiber photometry signal files
+│   ├── oft_2023-11-28T14_52_48_signal.csv     # 31 raw fiber photometry acquisition files
 │   └── ...
 ├── aligned_157/
 │   ├── oft_2023-05-16T15_31_06_aligned.csv  # 157 aligned analysis files
 │   └── ...
 └── aligned_36/
-    ├── oft_2023-05-16T15_31_06_aligned.csv  # 36 aligned analysis files (subset)
+    ├── oft_2023-05-16T15_31_06_aligned.csv  # 36 aligned analysis files (subset, not converted)
     └── ...
 ```
 
@@ -45,13 +47,20 @@ oft/
 
 ### VAME Motifs
 - Format: .npy (1D int array of motif labels)
-- Two model variants: 157-motif (157 sessions) and 36-motif (36 sessions)
+- Single model: 42-motif (`NEW_vame/`, prefix `42_km_label_`)
+- Replaces previous two-model approach (`vame_157`/`vame_36` with `47_km_label_` prefix)
 - Rate: 30 Hz (one label per video frame)
-- Custom interface: `VAMEInterface` via ndx-vame `MotifSeries`
+- Config shared across sessions: `NEW_vame/config.yaml`
+- Neuroconv interface: `VameInterface` via ndx-vame; project metadata key `VAME_42`
+
+### VAME Latent Vectors
+- Format: .npy (2D float array, frames × latent dims)
+- Files: `NEW_vame/latent_vector_{video_name}.npy`
+- Written alongside motif labels by the same `VameInterface`
 
 ### Fiber Photometry Signal
-- Format: CSV, 2 columns: `Time(s)` and signal (unique column name per file)
-- Signal is motion-corrected (sig - ref)
+- Processed dF/F: `signal_df/{video_name}_signal_df.csv` — motion-corrected (sig - ref)
+- Raw acquisition: `signal/{video_name}_signal.csv` — raw fluorescence channels
 - Sampling rate: ~60 Hz (irregular timestamps starting ~5s)
 - Only 31 of 161 sessions (all in `oft_fp` experiment)
 - Custom interface: `FiberPhotometryInterface` via ndx-fiber-photometry
@@ -74,14 +83,15 @@ oft/
 
 ## Stream Coverage
 
-| Stream | Sessions |
-|--------|----------|
-| Video | 161 |
-| Pose estimation | 161 |
-| VAME 157-motif | 157 |
-| VAME 36-motif | 36 |
-| Fiber photometry | 31 |
-| Aligned 157 | 157 |
+| Stream                   | Sessions |
+|--------------------------|----------|
+| Video                    | 161      |
+| Pose estimation          | 161      |
+| VAME motifs (42-motif)   | ~157     |
+| VAME latent vectors      | ~157     |
+| Fiber photometry (dF/F)  | 31       |
+| Fiber photometry (raw)   | 31       |
+| Aligned 157              | 157      |
 
 ## Session Naming
 - 87 sessions use `tmaze_` prefix despite being OFT experiments (legacy naming)
