@@ -106,7 +106,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
             vame_config_path = vame_project_path / "config.yaml"
             signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
             raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
-            aligned_157_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
+            aligned_path = vame_project_path / f"{video_name}_aligned.csv"
 
             session_kwargs_list.append(
                 dict(
@@ -118,7 +118,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                     vame_config_file_path=vame_config_path if vame_config_path.exists() else None,
                     signal_file_path=signal_path if signal_path.exists() else None,
                     raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
-                    aligned_file_path=aligned_157_path if aligned_157_path.exists() else None,
+                    aligned_file_path=aligned_path if aligned_path.exists() else None,
                 )
             )
 
