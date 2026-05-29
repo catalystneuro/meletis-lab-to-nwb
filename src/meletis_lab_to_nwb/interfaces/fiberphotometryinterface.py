@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from ndx_fiber_photometry import (
     FiberPhotometry,
@@ -73,10 +74,16 @@ class FiberPhotometryInterface(BaseDataInterface):
         file_path: str | Path,
         raw_file_path: str | Path | None = None,
         metadata_yaml_path: str | Path | None = None,
+        aligned_file_path: str | Path | None = None,
         verbose: bool = True,
     ):
         self.metadata_yaml_path = Path(metadata_yaml_path)
-        super().__init__(file_path=file_path, raw_file_path=raw_file_path, verbose=verbose)
+        super().__init__(
+            file_path=file_path,
+            raw_file_path=raw_file_path,
+            aligned_file_path=aligned_file_path,
+            verbose=verbose,
+        )
 
     def get_metadata(self) -> DeepDict:
         metadata = super().get_metadata()
@@ -277,6 +284,35 @@ class FiberPhotometryInterface(BaseDataInterface):
             description=pm_meta.get("description") or "",
         )
         ophys_module.add(response_series)
+
+        # --- Z-scored series (optional, from aligned analysis CSV) → ophys module ---
+        aligned_file_path = self.source_data.get("aligned_file_path")
+        if aligned_file_path is not None:
+            aligned_df = pd.read_csv(aligned_file_path)
+            if "signal" in aligned_df.columns:
+                aligned_t = aligned_df["time"].values
+                aligned_sig = aligned_df["signal"].values
+
+                # Keep only frames within the FP recording window (drop pre-recording fill)
+                fp_mask = (aligned_t >= timestamps[0]) & (aligned_t <= timestamps[-1])
+                zscore_t = aligned_t[fp_mask]
+                zscore_data = aligned_sig[fp_mask].astype(np.float64)
+
+                zscore_meta = fp_meta.get("FiberPhotometrySeriesZScored", {})
+                zscore_table_region = fiber_photometry_table.create_fiber_photometry_table_region(
+                    region=[0],
+                    description=zscore_meta.get("table_region_description") or "470 nm signal channel.",
+                )
+                zscore_rate = calculate_regular_series_rate(zscore_t, tolerance_decimals=6)
+                zscore_series = FiberPhotometryResponseSeries(
+                    name=zscore_meta.get("name", "FiberPhotometrySeriesZScored"),
+                    description=(zscore_meta.get("description") or "").format(indicator_label=indicator_label),
+                    data=zscore_data,
+                    **_rate_or_timestamps(zscore_t, zscore_rate),
+                    unit="z-score",
+                    fiber_photometry_table_region=zscore_table_region,
+                )
+                ophys_module.add(zscore_series)
 
         # --- Raw acquisition series (optional) → nwbfile.acquisition ---
         if raw_df is not None:
