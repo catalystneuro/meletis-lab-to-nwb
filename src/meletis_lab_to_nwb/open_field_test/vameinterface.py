@@ -49,9 +49,9 @@ class VameInterface(BaseTemporalAlignmentInterface):
     def __init__(
         self,
         motif_labels_file_path: FilePath,
+        vame_config_file_path: FilePath,
         latent_vectors_file_path: FilePath | None = None,
         community_labels_file_path: FilePath | None = None,
-        vame_config_file_path: FilePath | None = None,
         sampling_frequency_hz: float | None = None,
         vame_project_metadata_key: str = "VAMEProject",
         pose_estimation_name: str | None = None,
@@ -66,9 +66,7 @@ class VameInterface(BaseTemporalAlignmentInterface):
         self.vame_project_metadata_key = vame_project_metadata_key
         self.pose_estimation_name = pose_estimation_name
 
-        self.vame_config_dict = {}
-        if vame_config_file_path is not None:
-            self.vame_config_dict = load_dict_from_file(vame_config_file_path)
+        self.vame_config_dict = load_dict_from_file(vame_config_file_path)
 
         super().__init__(
             motif_labels_file_path=motif_labels_file_path,
@@ -123,16 +121,16 @@ class VameInterface(BaseTemporalAlignmentInterface):
     def get_metadata(self) -> DeepDict:
         metadata = super().get_metadata()
 
-        # Extract algorithm from VAME config ('parameterization' field, e.g. 'hmm').
+        # Extract algorithm from VAME config ('parameterization' field, e.g. 'hmm', 'k-means').
         algorithm = self.vame_config_dict.get("parameterization") or None
+
+        motif_series_meta: dict = dict(name="MotifSeries", description="VAME behavioral motif labels.")
+        if algorithm is not None:
+            motif_series_meta["algorithm"] = algorithm
 
         vame_project_metadata: dict = dict(
             name=self.vame_project_metadata_key,
-            MotifSeries=dict(
-                name="MotifSeries",
-                description="VAME behavioral motif labels.",
-                algorithm=algorithm,
-            ),
+            MotifSeries=motif_series_meta,
         )
 
         if self.latent_vectors_file_path is not None:
@@ -144,11 +142,13 @@ class VameInterface(BaseTemporalAlignmentInterface):
             )
 
         if self.community_labels_file_path is not None:
-            vame_project_metadata["CommunitySeries"] = dict(
+            community_series_meta: dict = dict(
                 name="CommunitySeries",
                 description="VAME community labels grouping motifs into higher-level behavioral states.",
-                algorithm=algorithm,
             )
+            if algorithm is not None:
+                community_series_meta["algorithm"] = algorithm
+            vame_project_metadata["CommunitySeries"] = community_series_meta
 
         metadata["VAME"] = {self.vame_project_metadata_key: vame_project_metadata}
         return metadata
