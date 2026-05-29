@@ -115,7 +115,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                     details_row=row,
                     vame_motif_file_path=vame_motif_path if vame_motif_path.exists() else None,
                     vame_latent_vector_file_path=vame_latent_vector_path if vame_latent_vector_path.exists() else None,
-                    vame_config_file_path=vame_config_path if vame_config_path.exists() else None,
+                    vame_config_file_path=vame_config_path,
                     signal_file_path=signal_path if signal_path.exists() else None,
                     raw_signal_file_path=raw_signal_path if raw_signal_path.exists() else None,
                     aligned_file_path=aligned_path if aligned_path.exists() else None,
