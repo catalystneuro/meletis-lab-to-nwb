@@ -96,7 +96,7 @@ def session_to_nwb(
     details_row: dict,
     vame_motif_file_path: str | Path | None = None,
     vame_latent_vector_file_path: str | Path | None = None,
-    vame_config_file_path: str | Path | None = None,
+    vame_config_file_path: str | Path,
     signal_file_path: str | Path | None = None,
     raw_signal_file_path: str | Path | None = None,
     aligned_file_path: str | Path | None = None,
@@ -146,6 +146,7 @@ def session_to_nwb(
     nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}.nwb"
 
     group = details_row["group"]
+    experiment = details_row.get("experiment", "")
     line = details_row["line"]
     session_date = _parse_session_date(video_name)
     sex = _get_sex(Path(aligned_file_path) if aligned_file_path is not None else None)
@@ -162,14 +163,12 @@ def session_to_nwb(
         PoseEstimation=dict(),
     )
 
-    vame_source_data = dict()
+    vame_source_data = dict(vame_config_file_path=vame_config_file_path)
     # TODO: check timestamps in aligned data
     if vame_motif_file_path is not None:
         vame_source_data["motif_labels_file_path"] = vame_motif_file_path
     if vame_latent_vector_file_path is not None:
         vame_source_data["latent_vectors_file_path"] = vame_latent_vector_file_path
-    if vame_config_file_path is not None:
-        vame_source_data["vame_config_file_path"] = vame_config_file_path
     vame_source_data["vame_project_metadata_key"] = "VAME_42"
     vame_source_data["sampling_frequency_hz"] = 30.0
     vame_source_data["pose_estimation_name"] = pose_estimation_name
@@ -181,6 +180,8 @@ def session_to_nwb(
         fp_source = dict(file_path=str(signal_file_path), metadata_yaml_path=fiber_photometry_metadata_path)
         if raw_signal_file_path is not None:
             fp_source["raw_file_path"] = str(raw_signal_file_path)
+        if aligned_file_path is not None:
+            fp_source["aligned_file_path"] = str(aligned_file_path)
         source_data["FiberPhotometry"] = fp_source
         conversion_options["FiberPhotometry"] = dict()
 
@@ -202,6 +203,12 @@ def session_to_nwb(
     editable_metadata_path = Path(__file__).parent / "metadata.yaml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
+
+    # Enrich session description with per-session experimental context from details.csv.
+    # `group` is the treatment group (ctrl, 6OHDA, Tetx, dLight_dStr, …);
+    # `experiment` is the sub-experiment identifier (oft_6OHDA, oft_fp, oft_Tetx, …).
+    base_description = metadata["NWBFile"]["session_description"]
+    metadata["NWBFile"]["session_description"] = f"From group '{group}' experiment '{experiment}'. {base_description}"
 
     t_zone = ZoneInfo("Europe/Stockholm")
     date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
