@@ -54,11 +54,18 @@ oft/
 - Written alongside motif labels by the same `VameInterface`
 
 ### Fiber Photometry Signal
-- Processed dF/F: `signal_df/{video_name}_signal_df.csv` — motion-corrected (sig - ref)
-- Raw acquisition: `signal/{video_name}_signal.csv` — raw fluorescence channels
-- Sampling rate: ~60 Hz (irregular timestamps starting ~5s)
+- Processed dF/F: `signal_df/{video_name}_signal_df.csv` — isosbestic-corrected dF/F, ~60 Hz
+- Raw acquisition: `signal/{video_name}_signal.csv` — raw 470 nm + 405 nm fluorescence, ~60 Hz
+- Z-scored (30 Hz): `NEW_vame/{video_name}_aligned.csv` `signal` column — session-level z-score
+  aligned to video frames; exact preprocessing unconfirmed (r ≈ 0.86 with dF/F; provenance
+  not fully traceable from available files); included for publication reproducibility
 - Only 31 of 161 sessions (all in `oft_fp` experiment)
 - Custom interface: `FiberPhotometryInterface` via ndx-fiber-photometry
+- NWB storage:
+  - `processing/ophys/FiberPhotometrySeriesDfOverF` — canonical dF/F at ~60 Hz (unit: a.u.)
+  - `processing/ophys/FiberPhotometrySeriesZScored` — z-scored at 30 Hz (unit: z-score)
+  - `acquisition/FiberPhotometrySeriesRawSignal` — raw 470 nm at ~60 Hz
+  - `acquisition/FiberPhotometrySeriesIsosbesticControl` — raw 405 nm at ~60 Hz
 
 ### Aligned Analysis
 - Format: CSV merging all data streams at 30 Hz
@@ -85,8 +92,9 @@ oft/
 | Pose estimation          | 161      |
 | VAME motifs (42-motif)   | ~157     |
 | VAME latent vectors      | ~157     |
-| Fiber photometry (dF/F)  | 31       |
-| Fiber photometry (raw)   | 31       |
+| Fiber photometry (dF/F)     | 31       |
+| Fiber photometry (z-scored) | 31       |
+| Fiber photometry (raw)      | 31       |
 | Aligned (NEW_vame)       | 161      |
 
 ## Session Naming
