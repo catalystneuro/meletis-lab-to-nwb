@@ -180,6 +180,14 @@ FiberPhotometry:
         into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
         AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
 
+  FiberPhotometrySeriesZScored:
+    name: FiberPhotometrySeriesZScored
+    description: >-
+      Session-level z-scored fiber photometry signal for indicator {indicator_label} at 30 Hz,
+      aligned frame-by-frame to behavioral data. Used for peri-event analyses
+      and VAME motif-triggered responses in Mantas et al. (2026).
+    table_region_description: "470 nm signal channel."
+
   FiberPhotometrySeriesRawSignal:
     name: FiberPhotometrySeriesRawSignal
     description: >-
