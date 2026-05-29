@@ -48,12 +48,7 @@ reaching_test/
   table is written
 - NWB location: `processing/behavior/reaching_events` (ndx-events `AnnotatedEventsTable`)
   - One row per event type with ragged `event_times`, `frame`, `paw`, `target_x`, `target_y`,
-    `paw_position_ref`, `reference_px`, `distance_px`, `distance_cm`
-- **Paw position SpatialSeries**: when `paw.x`/`paw.y` annotations are present, they are stored as
-  a `SpatialSeries` (`processing/behavior/PawPosition/paw_position`), one sample per event in
-  ascending time order, data shape `(N, 2)` in pixels. The `paw_position_ref` column of the
-  `AnnotatedEventsTable` contains `TimeSeriesReference(idx_start, count=1, timeseries)` entries
-  linking each event back to its row in the `SpatialSeries`
+    `paw_x`, `paw_y`, `reference_px`, `distance_px`, `distance_cm`
 - NeuroConv interface: Custom `ReachingBehaviorInterface` (shared with `water_consumption`);
   `metadata_yaml_path` is passed explicitly from `convert_session.py` pointing to
   `reaching_test/behavior_metadata.yaml`
@@ -94,10 +89,8 @@ reaching_test/
   `frame_index / frame_rate` gives seconds directly relative to `session_start_time`
 - Sessions with `has_behavior == FALSE` omit the `Behavior` interface entirely — no
   empty/placeholder table is written
-- `paw.x` / `paw.y` per-event pixel positions are stored as a `SpatialSeries` rather than flat
-  ragged columns, with a `TimeSeriesReferenceVectorData` column (`paw_position_ref`) linking the
-  table back to the `SpatialSeries`; this avoids duplicating coordinate data and follows NWB
-  conventions for spatial data
+- `paw.x` / `paw.y` per-event pixel positions are stored as flat ragged columns (`paw_x`, `paw_y`)
+  directly in the `AnnotatedEventsTable`
 - DLC confidence (likelihood) stored as the `confidence` field of each `PoseEstimationSeries`;
   no threshold is applied during conversion — filtering is left to downstream analysis
 - Skeleton defined with 4 edges only (limb chain + snout/tongue to mouth); the `extra` keypoint
@@ -141,8 +134,3 @@ reaching_test/
   on read
 - Some event type entries use `emopty` (typo for `empty`); normalised to `empty` in
   `EVENT_TYPE_NORMALIZATION`
-- The `_flatten_reaching_events` helper in the tutorial notebook (`reaching_test_demo.ipynb`)
-  does **not** yet exclude `paw_position_ref` from the flat DataFrame (unlike the updated
-  `water_consumption_demo.ipynb`); as a result the `reach_df` DataFrame will contain
-  `TimeSeriesReference` objects in the `paw_position_ref` column, which is technically valid
-  but may be confusing — this should be updated in a follow-up
