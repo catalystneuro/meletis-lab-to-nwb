@@ -15,20 +15,15 @@ oft/
 │   └── ...
 ├── NEW_vame/
 │   ├── config.yaml                                          # Shared VAME project config
-│   ├── 42_km_label_oft_2023-05-16T15_31_06.npy             # VAME motif label files
-│   ├── latent_vector_oft_2023-05-16T15_31_06.npy           # VAME latent vector files
+│   ├── 42_km_label_oft_2023-05-16T15_31_06.npy             # VAME motif label files (161)
+│   ├── latent_vector_oft_2023-05-16T15_31_06.npy           # VAME latent vector files (161)
+│   ├── oft_2023-05-16T15_31_06_aligned.csv                 # Aligned analysis files (161)
 │   └── ...
 ├── signal_df/
 │   ├── oft_2023-11-28T14_52_48_signal_df.csv  # 31 processed dF/F signal files
 │   └── ...
-├── signal/
-│   ├── oft_2023-11-28T14_52_48_signal.csv     # 31 raw fiber photometry acquisition files
-│   └── ...
-├── aligned_157/
-│   ├── oft_2023-05-16T15_31_06_aligned.csv  # 157 aligned analysis files
-│   └── ...
-└── aligned_36/
-    ├── oft_2023-05-16T15_31_06_aligned.csv  # 36 aligned analysis files (subset, not converted)
+└── signal/
+    ├── oft_2023-11-28T14_52_48_signal.csv     # 31 raw fiber photometry acquisition files
     └── ...
 ```
 
@@ -67,9 +62,10 @@ oft/
 
 ### Aligned Analysis
 - Format: CSV merging all data streams at 30 Hz
+- Location: `NEW_vame/{video_name}_aligned.csv` (161 files, one per session)
+- Replaces previous `aligned_157/` and `aligned_36/` directories
 - Kinematics columns extracted: speed, acceleration, angular.speed, distance.moved,
   angular.distance, speed_snout, distance.moved_snout
-- Note: `acceleration` column only present in aligned_157, not aligned_36
 - Custom interface: `AlignedDataInterface` → `BehavioralTimeSeries`
 
 ## Session/Subject Mapping (from details.csv)
@@ -91,7 +87,7 @@ oft/
 | VAME latent vectors      | ~157     |
 | Fiber photometry (dF/F)  | 31       |
 | Fiber photometry (raw)   | 31       |
-| Aligned 157              | 157      |
+| Aligned (NEW_vame)       | 161      |
 
 ## Session Naming
 - 87 sessions use `tmaze_` prefix despite being OFT experiments (legacy naming)
