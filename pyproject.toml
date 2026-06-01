@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "neuroconv @ git+https://github.com/catalystneuro/neuroconv.git@add-vame-interface", # temporary pin until merged
+  "neuroconv==0.9.3"
   "nwbinspector",
   "ndx-vame",
   "ipykernel>=7.2.0",
