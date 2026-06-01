@@ -128,6 +128,25 @@ Inside each conversion directory you can find the following files:
 The directory might contain other files that are necessary for the conversion but those are the central ones.
 
 
+## Video Conversion (AVI → MP4)
+
+Behavioral videos in `water_consumption` and `reaching_test` are recorded as `.avi` files (MPEG-4 Part 2). AVI files
+cannot be streamed in a web browser and will not play in
+[Neurosift](https://neurosift.app), the web-based NWB viewer used on DANDI. We therefore
+transcode all videos to H.264 MP4 before NWB conversion.
+
+A utility script is provided at `src/meletis_lab_to_nwb/video/convert_avi_to_mp4.py`.
+It requires `ffmpeg` to be installed and on your `PATH` (e.g. `brew install ffmpeg` on
+macOS or `conda install -c conda-forge ffmpeg`).
+
+```bash
+python src/meletis_lab_to_nwb/video/convert_avi_to_mp4.py
+```
+
+See [`src/meletis_lab_to_nwb/video/README.md`](src/meletis_lab_to_nwb/video/README.md)
+for full details on why this conversion is needed, the encoding settings used, and how to
+call the function programmatically from a conversion script.
+
 ## Data Conversion Pipeline
 
 This project implements a comprehensive pipeline for converting electrophysiology and behavioral data to NWB format:
