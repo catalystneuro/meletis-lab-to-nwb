@@ -15,9 +15,9 @@ classifiers = [
 ]
 
 dependencies = [
-  "neuroconv==0.9.3",
+  "neuroconv @ git+https://github.com/catalystneuro/neuroconv.git@add-vame-interface",
   "nwbinspector",
-  "ndx-vame",
+  "ndx-vame==0.3.1",
   "ipykernel>=7.2.0",
   "nwb-video-widgets>=0.1.7",
   "ndx-fiber-photometry==0.2.3",
