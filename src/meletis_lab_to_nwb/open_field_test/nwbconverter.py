@@ -1,10 +1,9 @@
 """Primary NWBConverter class for the open field test."""
 
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import DeepLabCutInterface, ExternalVideoInterface
+from neuroconv.datainterfaces import DeepLabCutInterface, ExternalVideoInterface, VameInterface
 
 from .behaviorinterface import OpenFieldTestBehaviorInterface
-from .vameinterface import VameInterface
 from ..interfaces import FiberPhotometryInterface
 
 
