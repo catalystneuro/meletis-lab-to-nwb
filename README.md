@@ -103,7 +103,7 @@ per-group fiber photometry metadata (brain region, indicator, optical fiber).
 |-------------|--------|---------------------|
 | Behavior video | H.264 MP4, 30 fps | `ExternalVideoInterface` |
 | Pose estimation | DeepLabCut CSV | `DeepLabCutInterface` |
-| Behavioral segmentation | VAME motif labels + latent vectors (`.npy`) | `VameInterface` (custom) |
+| Behavioral segmentation | VAME motif labels + latent vectors (`.npy`) | `VameInterface` (NeuroConv built-in) |
 | Fiber photometry (raw) | CSV (`time`, `ref` 405 nm, `sig` 470 nm) | `FiberPhotometryInterface` (custom) |
 | Fiber photometry (dF/F) | CSV (processed, motion-corrected) | `FiberPhotometryInterface` (custom) |
 | Behavioral events | CSV (custom) | `OpenFieldTestBehaviorInterface` (custom) |

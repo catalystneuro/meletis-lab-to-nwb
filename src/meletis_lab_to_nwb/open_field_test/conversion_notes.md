@@ -46,12 +46,17 @@ oft/
 - Replaces previous two-model approach (`vame_157`/`vame_36` with `47_km_label_` prefix)
 - Rate: 30 Hz (one label per video frame)
 - Config shared across sessions: `NEW_vame/config.yaml`
-- Neuroconv interface: `VameInterface` via ndx-vame; project metadata key `VAME_42`
+- NeuroConv interface: `neuroconv.datainterfaces.VameInterface` (built-in since `add-vame-interface` branch)
+- Requires ndx-vame == 0.3.1
+- NWB storage: `processing/behavior/VAME_42` (`VAMEProject` container)
+  - `motif_series["MotifSeries"]` — 1D int32, HMM algorithm (from `config["parameterization"]`)
+  - `VAMEProject.time_window_samples` = 30 (from `config["time_window"]`)
+  - Access: `nwbfile.processing["behavior"]["VAME_42"].motif_series["MotifSeries"]`
 
 ### VAME Latent Vectors
-- Format: .npy (2D float array, frames × latent dims)
+- Format: .npy (2D float32 array, frames × latent dims)
 - Files: `NEW_vame/latent_vector_{video_name}.npy`
-- Written alongside motif labels by the same `VameInterface`
+- Written alongside motif labels by the same `VameInterface` as `LatentSpaceSeries`
 
 ### Fiber Photometry Signal
 - Processed dF/F: `signal_df/{video_name}_signal_df.csv` — isosbestic-corrected dF/F, ~60 Hz
@@ -108,3 +113,11 @@ oft/
 - Only kinematics columns extracted from aligned CSV (pose/motifs/signal handled by dedicated interfaces)
 - Dots in column names (e.g., `angular.speed`) converted to underscores for NWB
 - Sex extracted from aligned CSV when available, otherwise "U"
+- VAME motif files use `42_km_label_` prefix (k-means clustering step), but the HMM algorithm
+  (stored in `config["parameterization"]`) is used as the `MotifSeries.algorithm` field because
+  HMM is the final segmentation step applied on top of the k-means embedding.
+- `MotifSeries` name is overridden to the plain `"MotifSeries"` (the NeuroConv interface
+  auto-generates `"MotifSeriesKmeans"` from the run key; the plain name is set in `convert_session.py`
+  for readability). The run key `"kmeans"` remains the dict key used internally.
+- `pose_estimation_metadata_key` is injected into `metadata["Behavior"]["VAMEProjects"]["VAME_42"]`
+  after `converter.get_metadata()` — it is not a constructor argument in the new interface.
