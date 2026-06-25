@@ -163,15 +163,16 @@ def session_to_nwb(
         PoseEstimation=dict(),
     )
 
-    vame_source_data = dict(vame_config_file_path=vame_config_file_path)
-    # TODO: check timestamps in aligned data
+    # file_path is the VAME config.yaml; motif_labels_file_paths is a dict mapping
+    # a run key to the .npy file so that multiple algorithm runs can coexist in one
+    # VAMEProject. For OFT we have a single k-means run keyed "kmeans".
+    vame_source_data = dict(file_path=vame_config_file_path)
     if vame_motif_file_path is not None:
-        vame_source_data["motif_labels_file_path"] = vame_motif_file_path
+        vame_source_data["motif_labels_file_paths"] = {"kmeans": vame_motif_file_path}
     if vame_latent_vector_file_path is not None:
         vame_source_data["latent_vectors_file_path"] = vame_latent_vector_file_path
-    vame_source_data["vame_project_metadata_key"] = "VAME_42"
+    vame_source_data["metadata_key"] = "VAME_42"
     vame_source_data["sampling_frequency_hz"] = 30.0
-    vame_source_data["pose_estimation_name"] = pose_estimation_name
     source_data["VAME"] = vame_source_data
     conversion_options["VAME"] = dict(stub_test=stub_test)
 
@@ -199,6 +200,16 @@ def session_to_nwb(
     metadata = converter.get_metadata()
     metadata["NWBFile"]["session_start_time"] = session_date
     metadata["NWBFile"]["session_id"] = session_id
+
+    # Override VAME metadata: use plain "MotifSeries" name and read the segmentation
+    # algorithm from config['parameterization'] (e.g. "hmm").
+    vame_project_meta = metadata["Behavior"]["VAMEProjects"]["VAME_42"]
+    vame_project_meta["pose_estimation_metadata_key"] = pose_estimation_name
+    if vame_motif_file_path is not None:
+        vame_config_dict = converter.data_interface_objects["VAME"]._vame_config
+        algorithm = vame_config_dict.get("parameterization") or "unknown"
+        vame_project_meta["MotifSeries"]["kmeans"]["name"] = "MotifSeries"
+        vame_project_meta["MotifSeries"]["kmeans"]["algorithm"] = algorithm
 
     editable_metadata_path = Path(__file__).parent / "metadata.yaml"
     editable_metadata = load_dict_from_file(editable_metadata_path)
