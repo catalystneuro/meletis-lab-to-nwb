@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 dependencies = [
-  "neuroconv==0.9.1",
+  "neuroconv==0.9.3",
   "nwbinspector",
   "ndx-vame",
   "ipykernel>=7.2.0",
@@ -27,10 +27,8 @@ dependencies = [
 [project.urls]
 Repository="https://github.com/catalystneuro/meletis-lab-to-nwb"
 
-[project.optional-dependencies]
-#arrow_maze_choice_task = [
-#  "neuroconv==0.9.1"   # Pinned dependencies to specific versions
-#]
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [dependency-groups]
 dev = [
