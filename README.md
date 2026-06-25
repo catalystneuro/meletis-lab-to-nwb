@@ -1,36 +1,12 @@
 # meletis-lab-to-nwb
+
 NWB conversion scripts for Meletis lab data to the
 [Neurodata Without Borders](https://nwb-overview.readthedocs.io/) data format.
 
 
 ## Installation
-## Basic installation
 
-You can install the latest release of the package with pip:
-
-```
-pip install meletis-lab-to-nwb
-```
-
-We recommend that you install the package inside a [virtual environment](https://docs.python.org/3/tutorial/venv.
-html). A simple way of doing this is to use a [conda environment](https://docs.conda.
-io/projects/conda/en/latest/user-guide/concepts/environments.html) from the `conda` package manager ([installation
-instructions](https://docs.conda.io/en/latest/miniconda.html)). Detailed instructions on how to use conda
-environments can be found in their [documentation](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
-
-### Running a specific conversion
-Once you have installed the package with pip, you can run any of the conversion scripts in a notebook or a python file:
-
-https://github.com/catalystneuro/meletis-lab-to-nwb//tree/main/src/arrow_maze_choice_task/convert_session.py
-
-Copy or download this file run the script with the following command:
-
-```
-python convert_session.py
-```
-
-## Installation from GitHub
-Another option is to install the package directly from Github. This option has the advantage that the source code can be modified if you need to amend some of the code we originally provided to adapt to future experimental differences. To install the conversion from GitHub you will need to use `git` ([installation instructions](https://github.com/git-guides/install-git)). We also recommend the installation of `conda` ([installation instructions](https://docs.conda.io/en/latest/miniconda.html)) as it contains all the required machinery in a single and simple install.
+We recommend installing the package directly from Github. This option has the advantage that the source code can be modified if you need to amend some of the code we originally provided to adapt to future experimental differences. To install the conversion from GitHub you will need to use `git` ([installation instructions](https://github.com/git-guides/install-git)). We also recommend the installation of `conda` ([installation instructions](https://docs.conda.io/en/latest/miniconda.html)) as it contains all the required machinery in a single and simple install.
 
 From a terminal (note that conda should install one in your system) you can do the following:
 
@@ -38,25 +14,11 @@ From a terminal (note that conda should install one in your system) you can do t
 git clone https://github.com/catalystneuro/meletis-lab-to-nwb
 cd meletis-lab-to-nwb
 conda env create --file make_env.yml
-conda activate meletis-lab-to-nwb_env
+conda activate meletis_lab_to_nwb_env
 ```
-
-This creates a [conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html) which isolates the conversion code from your system libraries.  We recommend that you run all your conversion related tasks and analysis from the created environment in order to minimize issues related to package dependencies.
-
-If you fork this repository and are running code from that fork, instead use
-```bash
-git clone https://github.com/your_github_username/meletis-lab-to-nwb
-```
-
-Then you can run
-```bash
-cd meletis-lab-to-nwb
-conda env create --file make_env.yml
-conda activate meletis-lab-to-nwb_env
-```
+This creates a [conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html) which isolates the conversion code from your system libraries. We recommend that you run all your conversion related tasks and analysis from the created environment in order to minimize issues related to package dependencies.
 
 Alternatively, if you want to avoid conda altogether (for example if you use another virtual environment tool) you can install the repository with the following commands using only pip:
-
 ```bash
 git clone https://github.com/catalystneuro/meletis-lab-to-nwb
 cd meletis-lab-to-nwb
@@ -67,66 +29,168 @@ Note:
 both of the methods above install the repository in [editable mode](https://pip.pypa.io/en/stable/cli/pip_install/#editable-installs).
 The dependencies for this environment are stored in the dependencies section of the `pyproject.toml` file.
 
-### Running a specific conversion
-If the project has more than one conversion, you can install the requirements for a specific conversion with the following command:
+All conversion scripts can be run from the single `meletis_lab_to_nwb_env` environment.
+
+---
+
+## Repository Structure
+
 ```
-pip install --editable .[arrow_maze_choice_task]
+meletis-lab-to-nwb/
+├── make_env.yml
+├── pyproject.toml
+├── README.md
+└── src/meletis_lab_to_nwb/
+    ├── interfaces/               # Shared interfaces (FiberPhotometryInterface, ReachingBehaviorInterface)
+    ├── arrow_maze_choice_task/   # T-maze decision task
+    ├── open_field_test/          # Open arena + VAME + fiber photometry
+    ├── opto_dlight/              # Optogenetic self-stimulation + dLight
+    ├── reaching_test/            # Forelimb reaching motor task
+    ├── water_consumption/        # Reaching-for-water + fiber photometry
+    ├── video/                    # AVI → MP4 utility
+    └── tutorials/                # Demo notebooks
 ```
 
-You can run a specific conversion with the following command:
+Each conversion directory contains:
+
+- `convert_session.py` — converts one session to NWB
+- `convert_all_sessions.py` — batch conversion with `ProcessPoolExecutor`
+- `nwbconverter.py` — `NWBConverter` subclass assembling all interfaces
+- `metadata.yaml` — NWB metadata template (deep-merged at conversion time)
+- `conversion_notes.md` — file format details, decisions, and open questions
+
+## Conversions
+
+- [Arrow Maze Choice Task](#arrow-maze-choice-task)
+- [Open Field Test](#open-field-test)
+- [Opto + dLight](#opto--dlight)
+- [Reaching Test](#reaching-test)
+- [Water Consumption](#water-consumption)
+
+---
+
+### Arrow Maze Choice Task
+
+**Directory:** [`src/meletis_lab_to_nwb/arrow_maze_choice_task/`](src/meletis_lab_to_nwb/arrow_maze_choice_task/)
+
+T-maze decision task in which mice choose between two arms. Sessions are indexed via
+`details.csv` and each session maps to one video and one DeepLabCut pose estimation file.
+
+| Data stream | Format | NeuroConv interface |
+|-------------|--------|---------------------|
+| Behavior video | H.264 MP4, 856×818, 30 fps | `ExternalVideoInterface` |
+| Pose estimation | DeepLabCut CSV (8 keypoints) | `DeepLabCutInterface` |
+
+#### Running the conversion
+
+```bash
+python src/meletis_lab_to_nwb/arrow_maze_choice_task/convert_session.py   # single session
+python src/meletis_lab_to_nwb/arrow_maze_choice_task/convert_all_sessions.py  # batch
 ```
-python src/meletis_lab_to_nwb/arrow_maze_choice_task/convert_session.py
+
+---
+
+### Open Field Test
+
+**Directory:** [`src/meletis_lab_to_nwb/open_field_test/`](src/meletis_lab_to_nwb/open_field_test/)
+
+Open field combining video tracking, pose estimation, unsupervised
+behavioral segmentation (VAME), and fiber photometry. Multiple cohorts are supported
+(`dLight_dStr`, `dLight_vStr`, `fp_dat`, `fp_anxa1`, `dat-cre`, `anxa1-flp`) with
+per-group fiber photometry metadata (brain region, indicator, optical fiber).
+
+| Data stream | Format | NeuroConv interface |
+|-------------|--------|---------------------|
+| Behavior video | H.264 MP4, 30 fps | `ExternalVideoInterface` |
+| Pose estimation | DeepLabCut CSV | `DeepLabCutInterface` |
+| Behavioral segmentation | VAME motif labels + latent vectors (`.npy`) | `VameInterface` (custom) |
+| Fiber photometry (raw) | CSV (`time`, `ref` 405 nm, `sig` 470 nm) | `FiberPhotometryInterface` (custom) |
+| Fiber photometry (dF/F) | CSV (processed, motion-corrected) | `FiberPhotometryInterface` (custom) |
+| Behavioral events | CSV (custom) | `OpenFieldTestBehaviorInterface` (custom) |
+
+#### Running the conversion
+
+```bash
+python src/meletis_lab_to_nwb/open_field_test/convert_session.py
+python src/meletis_lab_to_nwb/open_field_test/convert_all_sessions.py
 ```
 
-## Helpful Definitions
+---
 
-This conversion project is comprised primarily by DataInterfaces, NWBConverters, and conversion scripts.
+### Opto + dLight
 
-In neuroconv, a [DataInterface](https://neuroconv.readthedocs.io/en/main/user_guide/datainterfaces.html) is a class that specifies the procedure to convert a single data modality to NWB.
-This is usually accomplished with a single read operation from a distinct set of files.
-For example, in this conversion, the `ArrowMazeChoiceTaskBehaviorInterface` contains the code that converts all of the behavioral data to NWB from raw <FILE_TYPE> files.
+**Directory:** [`src/meletis_lab_to_nwb/opto_dlight/`](src/meletis_lab_to_nwb/opto_dlight/)
 
-In neuroconv, a [NWBConverter](https://neuroconv.readthedocs.io/en/main/user_guide/nwbconverter.html) is a class that combines many data interfaces and specifies the relationships between them, such as temporal alignment.
-This allows users to combine multiple modalities into a single NWB file in an efficient and modular way.
+Optogenetic self-stimulation paradigm (ChRmine, 640 nm, 40 Hz, bilateral SNc) with
+simultaneous dLight1.3b fiber photometry in striatum. Mice nosepoke to trigger laser
+bursts; five intensities tested per animal. Corresponds to Extended Data Fig. 7F–J.
 
-In this conversion project, the conversion scripts determine which sessions to convert,
-instantiate the appropriate NWBConverter object,
-and convert all of the specified sessions, saving them to an output directory of .nwb files.
+| Data stream | Format | NeuroConv interface |
+|-------------|--------|---------------------|
+| Optogenetic TTL | CSV (timestamp, frame, boolean state) | `OptogeneticsTTLInterface` (custom) |
+| Fiber photometry (raw) | CSV (`time`, `ref`, `sig`) | `FiberPhotometryInterface` (custom) |
+| Fiber photometry (dF/F) | CSV (processed) | `FiberPhotometryInterface` (custom) |
 
+#### Running the conversion
 
-## Repository structure
-Each conversion is organized in a directory of its own in the `src` directory:
+```bash
+python src/meletis_lab_to_nwb/opto_dlight/convert_session.py
+python src/meletis_lab_to_nwb/opto_dlight/convert_all_sessions.py
+```
 
-    meletis-lab-to-nwb/
-    ├── LICENSE
-    ├── make_env.yml
-    ├── pyproject.toml
-    ├── README.md
-    └── src
-        ├── meletis_lab_to_nwb
-        │   └── arrow_maze_choice_task
-        │       ├── conversion_notes.md
-        │       ├── behaviorinterface.py
-        │       ├── convert_session.py
-        │       ├── metadata.yml
-        │       ├── nwbconverter.py
-        │       └── __init__.py
-        │   ├── conversion_directory_b
+---
 
-        └── __init__.py
+### Reaching Test
 
-For example, for the conversion `arrow_maze_choice_task` you can find a directory located in `src/meletis-lab-to-nwb/arrow_maze_choice_task`.
-Inside each conversion directory you can find the following files:
+**Directory:** [`src/meletis_lab_to_nwb/reaching_test/`](src/meletis_lab_to_nwb/reaching_test/)
 
+Forelimb reaching-for-water motor task used to characterize the role of Anxa1+ SNc
+dopamine neurons in motor skill. Two experimental arms: chronic silencing via tetanus
+toxin (tet vs ctrl cohorts) and acute optogenetic silencing via Archaerhodopsin
+(arch_anxa1 vs arch_ctrl). Corresponds to Fig. 7E–N and Supplementary Fig. 15.
 
-* `convert_sesion.py`: this script defines the function to convert one full session of the conversion.
-* `metadata.yml`: metadata in yaml format for this specific conversion.
-* `behaviorinterface.py`: the behavior interface. Usually ad-hoc for each conversion.
-* `nwbconverter.py`: the place where the `NWBConverter` class is defined.
-* `conversion_notes.md`: notes and comments concerning this specific conversion.
+Source videos are `.avi` (MPEG-4 Part 2, 60 fps, FLIR camera) and must be converted
+to MP4 before NWB conversion — see [Video Conversion](#video-conversion-avi--mp4).
 
-The directory might contain other files that are necessary for the conversion but those are the central ones.
+| Data stream | Format | NeuroConv interface |
+|-------------|--------|---------------------|
+| Behavior video | AVI → MP4 (H.264, 60 fps) | `ExternalVideoInterface` |
+| Pose estimation | DeepLabCut CSV | `DeepLabCutInterface` |
+| Reach annotations | CSV (frame-indexed, paw + outcome) | `ReachingBehaviorInterface` (custom) |
 
+#### Running the conversion
+
+```bash
+python src/meletis_lab_to_nwb/reaching_test/convert_session.py
+python src/meletis_lab_to_nwb/reaching_test/convert_all_sessions.py
+```
+---
+
+### Water Consumption
+
+**Directory:** [`src/meletis_lab_to_nwb/water_consumption/`](src/meletis_lab_to_nwb/water_consumption/)
+
+Four-day forelimb reaching-for-water training task with simultaneous fiber photometry.
+Cohorts include dLight1.3b (dCP and cCP sites) and jGCaMP8m (pan-DA DAT-Cre and
+Anxa1-specific Anxa1-Flp lines). Per-group metadata selects the correct brain region,
+indicator label, and optical fiber configuration automatically.
+
+Source videos are `.avi` and must be converted to MP4 before NWB conversion — see
+[Video Conversion](#video-conversion-avi--mp4).
+
+| Data stream | Format | NeuroConv interface |
+|-------------|--------|---------------------|
+| Behavior video | AVI → MP4 (H.264, 60 fps) | `ExternalVideoInterface` |
+| Fiber photometry (raw) | CSV (`time`, `ref` 405 nm, `sig` 470 nm, ~60 Hz) | `FiberPhotometryInterface` (custom) |
+| Fiber photometry (dF/F) | CSV (motion-corrected dF/F) | `FiberPhotometryInterface` (custom) |
+| Reach annotations | CSV (frame-indexed, paw + outcome) | `ReachingBehaviorInterface` (custom) |
+
+#### Running the conversion
+
+```bash
+python src/meletis_lab_to_nwb/water_consumption/convert_session.py
+python src/meletis_lab_to_nwb/water_consumption/convert_all_sessions.py
+```
 
 ## Video Conversion (AVI → MP4)
 
@@ -147,17 +211,10 @@ See [`src/meletis_lab_to_nwb/video/README.md`](src/meletis_lab_to_nwb/video/READ
 for full details on why this conversion is needed, the encoding settings used, and how to
 call the function programmatically from a conversion script.
 
-## Data Conversion Pipeline
+---
 
-This project implements a comprehensive pipeline for converting electrophysiology and behavioral data to NWB format:
+## Key Dependencies
 
-**Source Data → Data Interfaces → NWB Files**
-
-## Customizing for New Datasets
-To create a new conversion:
-1. **Create a new dataset directory** following the naming convention `{experimenter}_{year}`
-2. **Implement dataset-specific interfaces** inheriting from existing interfaces as appropriate
-3. **Create an NWBConverter class** that combines all interfaces for your dataset
-4. **Write conversion scripts** for single sessions and batch processing
-6. **Create metadata files** with dataset-specific experimental parameters
-Each conversion should be self-contained within its directory and follow the established patterns for consistency and maintainability.
+- [`neuroconv`](https://neuroconv.readthedocs.io/) — core conversion framework
+- [`nwbinspector`](https://nwbinspector.readthedocs.io/) — NWB file validation
+- `ffmpeg` — video transcoding (system install, not a Python package)

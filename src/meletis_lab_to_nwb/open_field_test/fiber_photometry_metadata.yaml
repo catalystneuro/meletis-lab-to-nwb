@@ -1,0 +1,202 @@
+FiberPhotometry:
+  # Session-specific indicator_label and location are overridden in convert_session.py
+  # based on the `group` column in details.csv:
+  #   dLight_dStr              → dLight1.3b, fiber in dCP (confirmed by lab)
+  #   dLight_vStr              → dLight1.3b, fiber in cCP (confirmed by lab)
+  #   fp_dat / dat-cre         → jGCaMP8m axonal signals in dCP (confirmed by lab)
+  #   fp_anxa1 / anxa1-flp     → jGCaMP8m axonal signals in dCP (confirmed by lab)
+  # Placeholder defaults below are for the dLight-in-striatum case.
+  location: Caudoputamen
+  indicator_label: dLight1.3b
+  excitation_wavelength_in_nm: 470.0
+  emission_wavelength_in_nm: 525.0
+
+  ExcitationSourceModel_470nm:
+    # 470 nm LED for signal channel. Power 20-30 µW (Mantas et al. 2026, lines 917-918).
+    # Doric CLED-G2 system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657),
+    # cited as ref 101 in Mantas et al. 2026.
+    # Peak wavelength: 470 nm; FWHM: ~27 nm → wavelength_range [456.5, 483.5] nm.
+    name: doric_470nm_led_model
+    manufacturer: Doric
+    model_number: CLED-G2-470
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    wavelength_range_in_nm: [456.5, 483.5]  # peak 470 nm, FWHM ~27 nm; source: https://neuro.doriclenses.com/products/cled
+
+  ExcitationSourceModel_405nm:
+    # 405 nm LED for isosbestic reference channel. Power 15-25 µW (Mantas et al. 2026, lines 918-919).
+    # Doric CLED-G2 system; hardware described in Dana et al. 2019 (Nat. Methods 16, 649-657),
+    # cited as ref 101 in Mantas et al. 2026.
+    # Peak wavelength: 405 nm; FWHM: ~12 nm → wavelength_range [399.0, 411.0] nm.
+    name: doric_405nm_led_model
+    manufacturer: Doric
+    model_number: CLED-G2-405
+    source_type: "LED"
+    excitation_mode: "one-photon"
+    wavelength_in_nm: 405.0  # helper: code reads this for the FiberPhotometryTable isosbestic row
+    wavelength_range_in_nm: [399.0, 411.0]  # peak 405 nm, FWHM ~12 nm; source: https://neuro.doriclenses.com/products/cled
+
+  OpticalFiberModel:
+    # 400 µm ceramic ferrule fiber optic cannula, NA 0.22, Doric.
+    # Specs from Mantas et al. (2026), Implant placement, lines 652-654.
+    name: doric_400um_cannula_model
+    manufacturer: Doric
+    numerical_aperture: 0.22
+    core_diameter_in_um: 400.0
+    ferrule_name: "ceramic ferrule"
+
+  ExcitationSourceSignal:
+    name: excitation_source_signal
+    description: >-
+      470 nm Doric LED for fiber photometry signal-channel excitation (20-30 µW).
+      Interleaved with the 405 nm isosbestic reference via DoricStudio V5 software.
+
+  ExcitationSourceIsosbestic:
+    name: excitation_source_isosbestic
+    description: >-
+      405 nm Doric LED for fiber photometry isosbestic-reference excitation (15-25 µW).
+
+  # FiberInsertion is injected per-session by convert_session.py via GROUP_FP_CONFIG
+  # ["fiber_insertion_key"] → dCP or cCP. All groups confirmed by the lab:
+  #   dLight_dStr / fp_dat / fp_anxa1 / dat-cre / anxa1-flp → dCP
+  #   dLight_vStr → cCP
+  # (Mantas et al. 2026, Implant placement, lines 656-658). Right hemisphere for all sessions.
+  FiberInsertions:
+    dCP:
+      # Dorsal caudoputamen. Confirmed by lab.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.74
+      insertion_position_ml_in_mm: 1.5
+      insertion_position_dv_in_mm: -2.2
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
+    cCP:
+      # Central caudoputamen. Confirmed by lab.
+      name: fiber_insertion
+      insertion_position_ap_in_mm: 0.38
+      insertion_position_ml_in_mm: 2.0
+      insertion_position_dv_in_mm: -2.9
+      position_reference: "(AP, ML, DV) = (0, 0, 0) corresponds to bregma at the cortical surface"
+      hemisphere: right
+
+  OpticalFiber:
+    name: optical_fiber_cpu
+    description: >-
+      Doric 400 µm ceramic ferrule fiber optic cannula implanted in the dorsal caudoputamen
+      (dCP) or central caudoputamen (cCP). For fp_dat/fp_anxa1/dat-cre/anxa1-flp groups the
+      fiber records axonal GCaMP signals from SN→dCP projections; for dLight groups it records
+      dopamine release. Per-session location is stored in the FiberPhotometryTable.
+
+  Photodetector:
+    name: photodetector
+    description: "Photodetector for fiber photometry signal and reference channels."
+
+  ProcessingModule:
+    name: ophys
+    description: >-
+      Processed optical physiology data. Contains motion-corrected dF/F fluorescence
+      signals from open field test fiber photometry recordings.
+
+  FiberPhotometryLabMetaData:
+    name: fiber_photometry
+
+  FiberPhotometryTable:
+    name: fiber_photometry_table
+    description: "Fiber photometry metadata table for the open field test."
+
+  FiberPhotometrySeriesDfOverF:
+    name: FiberPhotometrySeriesDfOverF
+    description: >-
+      Isosbestic-corrected dF/F fiber photometry signal for indicator {indicator_label}.
+      Preprocessing in DoricStudio V5: raw 470 nm
+      and 405 nm fluorescence traces were baseline-normalized (dF/F) and low-pass
+      filtered (10 Hz cutoff); the normalized 405 nm isosbestic trace was then scaled
+      to the 470 nm baseline and subtracted to remove shared artifacts (motion,
+      photobleaching). Acquired via interleaved 470/405 nm LED excitation at ~60 Hz.
+      Corrected dF/F traces were aligned to behavioral events (VAME motif onsets) for
+      downstream peri-event analyses. Original signal column: {signal_column}.
+    table_region_description: "470 nm signal channel."
+
+  # Indicator is NOT set here — it is injected per-session by convert_session.py based on
+  # the `group` column in details.csv. Keys match the same group labels used in the
+  # water-consumption conversion.
+  Indicators:
+    dLight_dStr:
+      # dLight1.3b injected into dorsal caudoputamen (dCP); records DA release during OFT.
+      name: dLight1.3b
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded dopamine indicator dLight1.3b (AAV5-CAG-dLight1.3b, Addgene
+        plasmid #125560). Delivered via unilateral striatal injection into the dorsal
+        caudoputamen (dCP; Mantas et al. 2026, lines 628-629 and 656-658). Records
+        dopamine release dynamics during open field exploration.
+    dLight_vStr:
+      # dLight1.3b in central caudoputamen (cCP). Confirmed by lab.
+      name: dLight1.3b
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded dopamine indicator dLight1.3b (AAV5-CAG-dLight1.3b, Addgene
+        plasmid #125560). Delivered via unilateral striatal injection into the central
+        caudoputamen (cCP; AP +0.38, ML +2.0, DV −2.9; Mantas et al. 2026, lines 628-629
+        and 656-658). Records dopamine release dynamics during open field exploration.
+    fp_dat:
+      # jGCaMP8m axonal signals in dCP from DAT-Cre SN neurons. Confirmed by lab.
+      name: jGCaMP8m
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine
+        neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE,
+        Addgene #162381, 300 nL unilateral injection into SNc). Axonal jGCaMP8m signals
+        recorded in the dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2) during
+        open field exploration.
+    fp_anxa1:
+      # jGCaMP8m axonal signals in dCP from Anxa1+ SN neurons. Confirmed by lab.
+      name: jGCaMP8m
+      manufacturer: VVF Zurich
+      description: >-
+        Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+
+        SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-
+        dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, 300-500 nL unilateral injection
+        into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
+        AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
+    # OFT-specific group label for pan-DA DAT-Cre mice; same indicator as fp_dat.
+    dat-cre:
+      name: jGCaMP8m
+      manufacturer: Addgene
+      description: >-
+        Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine
+        neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE,
+        Addgene #162381, 300 nL unilateral injection into SNc). Axonal jGCaMP8m signals
+        recorded in the dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2) during
+        open field exploration.
+    # OFT-specific group label for Anxa1-Flp mice; same indicator as fp_anxa1.
+    anxa1-flp:
+      name: jGCaMP8m
+      manufacturer: VVF Zurich
+      description: >-
+        Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+
+        SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-
+        dFRT-jGCaMP8m(rev)-dFRT-WPRE-bGHp, VVF Zurich, 300-500 nL unilateral injection
+        into SNc). Axonal jGCaMP8m signals recorded in the dorsal caudoputamen (dCP;
+        AP +0.74, ML ±1.5, DV −2.2) during open field exploration.
+
+  FiberPhotometrySeriesZScored:
+    name: FiberPhotometrySeriesZScored
+    description: >-
+      Session-level z-scored fiber photometry signal for indicator {indicator_label} at 30 Hz,
+      aligned frame-by-frame to behavioral data. Used for peri-event analyses
+      and VAME motif-triggered responses in Mantas et al. (2026).
+    table_region_description: "470 nm signal channel."
+
+  FiberPhotometrySeriesRawSignal:
+    name: FiberPhotometrySeriesRawSignal
+    description: >-
+      Raw 470 nm fluorescence signal from fiber photometry acquisition (DoricStudio V5).
+    table_region_description: "470 nm signal channel (raw fluorescence)."
+
+  FiberPhotometrySeriesIsosbesticControl:
+    name: FiberPhotometrySeriesIsosbesticControl
+    description: >-
+      Raw 405 nm isosbestic reference fluorescence from fiber photometry acquisition
+      (DoricStudio V5).
+    table_region_description: "405 nm isosbestic control (raw fluorescence)."
