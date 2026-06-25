@@ -84,7 +84,14 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
             signal_file_path = data_dir_path / "signal_df" / f"{video_stem}_signal_df.csv"
             raw_signal_file_path = data_dir_path / "signal" / f"{video_stem}_signal.csv"
             behavior_file_path = data_dir_path / "annotations" / f"{video_stem}_behavior.csv"
-            video_file_path = data_dir_path / "videos" / f"{video_stem}.avi"
+            mp4_file_path = data_dir_path / "videos_mp4" / f"{video_stem}.mp4"
+            avi_file_path = data_dir_path / "videos" / f"{video_stem}.avi"
+            if mp4_file_path.exists():
+                video_file_path = mp4_file_path
+            elif avi_file_path.exists():
+                video_file_path = avi_file_path
+            else:
+                video_file_path = None
 
             if not signal_file_path.exists() or not behavior_file_path.exists():
                 print(f"[skip] {video_stem}: missing required signal_df or annotation file")
@@ -95,7 +102,7 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
                     signal_file_path=signal_file_path,
                     raw_signal_file_path=raw_signal_file_path if raw_signal_file_path.exists() else None,
                     behavior_file_path=behavior_file_path,
-                    video_file_path=video_file_path if video_file_path.exists() else None,
+                    video_file_path=video_file_path,
                     details_row=row,
                     stub_test=False,
                 )

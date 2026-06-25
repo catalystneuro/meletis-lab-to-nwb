@@ -62,7 +62,11 @@ def safe_session_to_nwb(*, session_to_nwb_kwargs: dict, exception_file_path: Pat
 
 
 def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[dict]:
-    """Build the per-session kwargs list from ``details.csv`` and the data directory layout."""
+    """Build the per-session kwargs list from ``details.csv`` and the data directory layout.
+
+    Video resolution order: ``videos_mp4/<stem>.mp4`` → ``videos/<stem>.avi``.
+    Pose estimation is included only when ``has_dlc`` is TRUE and the CSV file exists.
+    """
     data_dir_path = Path(data_dir_path)
     details_file_path = data_dir_path / "details.csv"
 
@@ -74,18 +78,32 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
             if not video_stem:
                 continue
 
-            video_file_path = data_dir_path / "videos" / f"{video_stem}.avi"
-            pose_estimation_file_path = (
-                data_dir_path / "pose_estimation" / f"{video_stem}DLC_resnet50_reaching_trainJun9shuffle1_100000.csv"
-            )
-            behavior_file_path = data_dir_path / "annotations" / f"{video_stem}_behavior.csv"
+            # Prefer MP4 (converted from AVI) when available, fall back to AVI.
+            mp4_path = data_dir_path / "videos_mp4" / f"{video_stem}.mp4"
+            avi_path = data_dir_path / "videos" / f"{video_stem}.avi"
+            if mp4_path.exists():
+                video_file_path = mp4_path
+            elif avi_path.exists():
+                video_file_path = avi_path
+            else:
+                print(f"Warning: No video file found, skipping: {video_stem}")
+                continue
 
-            if not video_file_path.exists():
-                print(f"Warning: Video file not found, skipping: {video_file_path}")
-                continue
-            if not pose_estimation_file_path.exists():
-                print(f"Warning: Pose estimation file not found, skipping: {pose_estimation_file_path}")
-                continue
+            # Pose estimation is optional — only include when available.
+            has_dlc = row.get("has_dlc", "").strip().upper() == "TRUE"
+            pose_estimation_file_path = None
+            if has_dlc:
+                dlc_path = (
+                    data_dir_path
+                    / "pose_estimation"
+                    / f"{video_stem}DLC_resnet50_reaching_trainJun9shuffle1_100000.csv"
+                )
+                if dlc_path.exists():
+                    pose_estimation_file_path = dlc_path
+                else:
+                    print(f"Warning: DLC file not found (has_dlc=TRUE): {dlc_path}")
+
+            behavior_file_path = data_dir_path / "annotations" / f"{video_stem}_behavior.csv"
 
             session_kwargs_list.append(
                 dict(
