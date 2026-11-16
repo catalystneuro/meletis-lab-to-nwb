@@ -44,14 +44,24 @@ oft/
 - Format: .npy (1D int array of motif labels)
 - Single model: 42-motif (`NEW_vame/`, prefix `42_km_label_`)
 - Replaces previous two-model approach (`vame_157`/`vame_36` with `47_km_label_` prefix)
-- Rate: 30 Hz (one label per video frame)
+- Rate: 30 Hz
 - Config shared across sessions: `NEW_vame/config.yaml`
-- Neuroconv interface: `VameInterface` via ndx-vame; project metadata key `VAME_42`
+- NeuroConv interface: `neuroconv.datainterfaces.VameInterface` via ndx-vame; project metadata key `VAME_42`
+- Timing: VAME labels windows of `time_window` frames (30 in the config), so the label and
+  latent files are 30 samples shorter than the pose data. Sample `i` is written at the
+  timestamp of video frame `i + time_window // 2` (the window centre), which gives a
+  `starting_time` of 0.5 s. The lab's `*_aligned.csv` files place label `i` at frame `i`.
+- The run key and `MotifSeries.algorithm` come from `parameterization` in the config (`hmm`).
+  The series keeps the name `MotifSeries`.
+- The interface also writes ndx-ethogram objects derived from the labels:
+  `VAME_42EthogramBoutsHmm` (run-length-encoded bouts) and `VAME_42EthogramHmm` (motif catalogue).
+  The config stores the cluster count under the legacy key `n_cluster`, which the interface does
+  not read, so the catalogue lists the motifs observed in the session and not all 42.
 
 ### VAME Latent Vectors
 - Format: .npy (2D float array, frames × latent dims)
 - Files: `NEW_vame/latent_vector_{video_name}.npy`
-- Written alongside motif labels by the same `VameInterface`
+- Written alongside motif labels by the same `VameInterface`, with the same timestamps
 
 ### Fiber Photometry Signal
 - Processed dF/F: `signal_df/{video_name}_signal_df.csv` — isosbestic-corrected dF/F, ~60 Hz
