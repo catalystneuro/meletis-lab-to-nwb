@@ -128,6 +128,7 @@ def session_to_nwb(
         fp_source["raw_file_path"] = str(raw_signal_file_path)
 
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
+    video_metadata_key = "video"
     source_data = dict(
         FiberPhotometry=fp_source,
         Behavior=dict(
@@ -135,7 +136,7 @@ def session_to_nwb(
             video_file_path=video_file_path,
             metadata_yaml_path=behavior_metadata_yaml_path,
         ),
-        Video=dict(file_paths=[str(video_file_path)]),
+        Video=dict(file_paths=[str(video_file_path)], metadata_key=video_metadata_key),
     )
     conversion_options = dict(
         FiberPhotometry=dict(stub_test=stub_test),
@@ -188,9 +189,8 @@ def session_to_nwb(
 
     # Update camera device from behavior_metadata.yaml
     video_device = load_dict_from_file(behavior_metadata_yaml_path)["VideoDevice"]
-    video_key = f"Video {Path(video_file_path).stem}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
+    camera_metadata_key = metadata["Behavior"]["ExternalVideos"][video_metadata_key]["device_metadata_key"]
+    metadata["Devices"][camera_metadata_key] = dict(name=video_device["name"], description=video_device["description"])
 
     converter.run_conversion(
         metadata=metadata,

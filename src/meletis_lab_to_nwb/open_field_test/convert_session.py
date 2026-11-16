@@ -151,27 +151,26 @@ def session_to_nwb(
     session_date = _parse_session_date(video_name)
     sex = _get_sex(Path(aligned_file_path) if aligned_file_path is not None else None)
 
-    pose_estimation_name = "PoseEstimationDeepLabCut"
+    video_metadata_key = "video"
+    pose_estimation_metadata_key = "PoseEstimationDeepLabCut"
+    vame_metadata_key = "VAME_42"
     source_data = dict(
-        Video=dict(file_paths=[video_file_path]),
-        PoseEstimation=dict(
-            file_path=str(pose_estimation_file_path), pose_estimation_metadata_key=pose_estimation_name
-        ),
+        Video=dict(file_paths=[video_file_path], metadata_key=video_metadata_key),
+        PoseEstimation=dict(file_path=str(pose_estimation_file_path), metadata_key=pose_estimation_metadata_key),
     )
     conversion_options = dict(
         Video=dict(),
         PoseEstimation=dict(),
     )
 
-    vame_source_data = dict(vame_config_file_path=vame_config_file_path)
-    # TODO: check timestamps in aligned data
+    # The run key is the segmentation algorithm, taken from 'parameterization' in the VAME config.
+    vame_config = load_dict_from_file(vame_config_file_path)
+    vame_algorithm = vame_config["parameterization"]
+    vame_source_data = dict(file_path=vame_config_file_path, metadata_key=vame_metadata_key)
     if vame_motif_file_path is not None:
-        vame_source_data["motif_labels_file_path"] = vame_motif_file_path
+        vame_source_data["motif_labels_file_paths"] = {vame_algorithm: vame_motif_file_path}
     if vame_latent_vector_file_path is not None:
         vame_source_data["latent_vectors_file_path"] = vame_latent_vector_file_path
-    vame_source_data["vame_project_metadata_key"] = "VAME_42"
-    vame_source_data["sampling_frequency_hz"] = 30.0
-    vame_source_data["pose_estimation_name"] = pose_estimation_name
     source_data["VAME"] = vame_source_data
     conversion_options["VAME"] = dict(stub_test=stub_test)
 
@@ -195,6 +194,15 @@ def session_to_nwb(
     # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
     timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
     converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
+
+    # VAME labels each window of 'time_window' frames, so the label and latent files are
+    # 'time_window' frames shorter than the pose data. Sample i is placed at the centre of
+    # its window, i.e. at video frame i + time_window // 2.
+    vame_offset_frames = int(vame_config["time_window"]) // 2
+    vame_reference_file_path = vame_motif_file_path or vame_latent_vector_file_path
+    num_vame_samples = np.load(vame_reference_file_path, mmap_mode="r").shape[0]
+    vame_timestamps = timestamps[vame_offset_frames : vame_offset_frames + num_vame_samples]
+    converter.data_interface_objects["VAME"].set_aligned_timestamps(vame_timestamps)
 
     metadata = converter.get_metadata()
     metadata["NWBFile"]["session_start_time"] = session_date
@@ -243,18 +251,20 @@ def session_to_nwb(
     behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"
     behavior_metadata = load_dict_from_file(behavior_metadata_path)
     video_device = behavior_metadata["VideoDevice"]
-    video_key = f"Video {video_name}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
-    # Replace the DLC auto-generated camera device with the shared video camera device so
-    # both the video and pose estimation reference the same device object in the NWB file.
-    metadata["PoseEstimation"]["Devices"].pop("CameraPoseEstimationDeepLabCut", None)
-    metadata["PoseEstimation"]["Devices"][video_device["name"]] = {
-        "name": video_device["name"],
-        "description": video_device["description"],
-    }
-    for container in metadata["PoseEstimation"]["PoseEstimationContainers"].values():
-        container["devices"] = [video_device["name"]]
+    camera_metadata_key = metadata["Behavior"]["ExternalVideos"][video_metadata_key]["device_metadata_key"]
+    metadata["Devices"][camera_metadata_key] = dict(name=video_device["name"], description=video_device["description"])
+    # Link the pose estimation to the same camera device as the video.
+    pose_estimation_metadata = metadata["Pose"]["PoseEstimations"][pose_estimation_metadata_key]
+    pose_estimation_metadata["device_metadata_key"] = camera_metadata_key
+    pose_estimation_metadata["description"] = "2D keypoint coordinates estimated using DeepLabCut."
+
+    # Link the VAME project to the pose estimation and video it was computed from.
+    vame_project_metadata = metadata["Behavior"]["Vame"]["VameProjects"][vame_metadata_key]
+    vame_project_metadata["pose_estimation_metadata_key"] = pose_estimation_metadata_key
+    vame_project_metadata["video_metadata_key"] = video_metadata_key
+    if vame_motif_file_path is not None:
+        motif_series_metadata_key = f"{vame_metadata_key}_motif_{vame_algorithm}"
+        metadata["Behavior"]["Vame"]["MotifSeries"][motif_series_metadata_key]["name"] = "MotifSeries"
 
     converter.run_conversion(
         metadata=metadata,
