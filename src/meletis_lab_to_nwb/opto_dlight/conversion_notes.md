@@ -56,6 +56,7 @@ opto+dLight/
   - `vStr` → `cCP` (central caudoputamen): mice 802369, 802372 (10 sessions)
 - 5 intensities per mouse pair: 0.1, 0.2, 0.5, 1, 2 mW
 - Session timestamp encoded in filename: `oft_YYYY-MM-DDTHH_MM_SS`
+- `group` (`dStr` or `vStr`) is also stored in `lab_meta_data["session_metadata"]`
 - Timezone: Europe/Stockholm (Karolinska Institutet)
 
 ## Decisions
