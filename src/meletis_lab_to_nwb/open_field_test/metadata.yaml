@@ -28,7 +28,8 @@ NWBFile:
   session_description: |
     Open field test session. A mouse explored a 40x40 cm arena recorded from below
     at 30 fps. Pose estimation via DeepLabCut and behavioral classification via VAME
-    were applied to the video data.
+    were applied to the video data. The session ID is the lab's original recording name
+    (`tmaze_<date>` or `oft_<date>`); its prefix does not indicate the task.
   institution: Karolinska Institutet
   lab: Meletis
   experimenter:

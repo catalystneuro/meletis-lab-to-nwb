@@ -42,6 +42,7 @@ meletis-lab-to-nwb/
 ├── README.md
 └── src/meletis_lab_to_nwb/
     ├── interfaces/               # Shared interfaces (FiberPhotometryInterface, ReachingBehaviorInterface)
+    ├── session_metadata/         # lab_meta_data extension for group, cohort, day, light condition
     ├── arrow_maze_choice_task/   # T-maze decision task
     ├── open_field_test/          # Open arena + VAME + fiber photometry
     ├── opto_dlight/              # Optogenetic self-stimulation + dLight
@@ -58,6 +59,34 @@ Each conversion directory contains:
 - `nwbconverter.py` — `NWBConverter` subclass assembling all interfaces
 - `metadata.yaml` — NWB metadata template (deep-merged at conversion time)
 - `conversion_notes.md` — file format details, decisions, and open questions
+
+## Session condition labels
+
+Every NWB file stores the session's condition labels in `nwbfile.lab_meta_data["session_metadata"]`
+(type `MeletisSessionMetadata`, namespace `ndx-meletis-metadata`, defined in
+`src/meletis_lab_to_nwb/session_metadata/`). The values are those of the lab's `details.csv`.
+
+| Field | Source column | Conversions |
+|-------|---------------|-------------|
+| `group` | `group` | all |
+| `cohort` | `experiment` | arrow maze, open field, reaching test |
+| `day` | `day` (arrow maze), `phase` (reaching test) | arrow maze, reaching test |
+| `light_condition` | `light` | reaching test, Arch cohort only |
+
+The extension specification is cached in each file, so the files can be read without installing
+this package:
+
+```python
+from pynwb import read_nwb
+
+nwbfile = read_nwb(nwbfile_path)
+session_metadata = nwbfile.lab_meta_data["session_metadata"]
+print(session_metadata.group, session_metadata.cohort)
+```
+
+The session ID is the lab's original recording name. Its prefix (`tmaze`, `oft`,
+`reaching_test`) does not always match the task: 87 open field sessions are named `tmaze_*`, and
+the water consumption and opto + dLight sessions are named `reaching_test_*` and `oft_*`.
 
 ## Conversions
 

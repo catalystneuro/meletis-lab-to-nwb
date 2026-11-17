@@ -1,0 +1,22 @@
+groups:
+- neurodata_type_def: MeletisSessionMetadata
+  neurodata_type_inc: LabMetaData
+  doc: Experimental condition labels of one session, with the values used in the lab's
+    session tables (details.csv).
+  attributes:
+  - name: group
+    dtype: text
+    doc: Treatment or recording group of the subject in this session (`group` column).
+    required: false
+  - name: cohort
+    dtype: text
+    doc: Experiment or cohort the session belongs to (`experiment` column).
+    required: false
+  - name: day
+    dtype: text
+    doc: Training or test day label of the session (`day` or `phase` column).
+    required: false
+  - name: light_condition
+    dtype: text
+    doc: State of the optogenetic silencing laser during the session (`light` column).
+    required: false

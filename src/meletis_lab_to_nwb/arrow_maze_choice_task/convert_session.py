@@ -6,9 +6,11 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
+from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskNWBConverter
+from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
 
 def session_to_nwb(
@@ -111,7 +113,12 @@ def session_to_nwb(
     pose_estimation_metadata["device_metadata_key"] = camera_metadata_key
     pose_estimation_metadata["description"] = "2D keypoint coordinates estimated using DeepLabCut."
 
+    # Store the session's condition labels as structured metadata, not only in the description.
+    nwbfile = make_nwbfile_from_metadata(metadata=metadata)
+    add_session_metadata(nwbfile=nwbfile, group=group, cohort=experiment, day=details_row.get("day"))
+
     converter.run_conversion(
+        nwbfile=nwbfile,
         metadata=metadata,
         nwbfile_path=nwbfile_path,
         conversion_options=conversion_options,
@@ -129,7 +136,8 @@ if __name__ == "__main__":
     output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/arrow_maze_choice_task")
     stub_test = False
 
-    details_file_path = data_dir_path / "details.csv"
+    # The updated table fills in the sex and date of birth that details.csv lacks for 32 sessions.
+    details_file_path = data_dir_path / "details_tmaze_updated.csv"
     with open(details_file_path) as f:
         reader = csv.DictReader(f)
         row = next(reader)

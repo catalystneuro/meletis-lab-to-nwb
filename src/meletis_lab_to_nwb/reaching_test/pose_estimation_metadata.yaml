@@ -11,3 +11,14 @@ Pose:
         (reach target reference on the animal), spout (reach target on the rig).
       scorer: DLC_resnet50_reaching_trainJun9shuffle1_100000
       source_software: DeepLabCut
+
+  # Edges added to the skeleton that DeepLabCutInterface generates (the name and nodes are
+  # kept as generated). Indices refer to the node order in the DLC file:
+  # snout, tongue, palm, wrist, elbow, mouth, spout, extra.
+  Skeletons:
+    PoseEstimationDeepLabCut:
+      edges:
+        - [2, 3]  # palm -- wrist
+        - [3, 4]  # wrist -- elbow
+        - [0, 5]  # snout -- mouth
+        - [1, 5]  # tongue -- mouth

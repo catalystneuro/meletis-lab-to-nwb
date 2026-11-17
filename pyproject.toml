@@ -24,6 +24,12 @@ dependencies = [
   "ndx-events==0.2.2",
 ]
 
+[project.optional-dependencies]
+dandi = [
+  "dandi",
+  "remfile",
+]
+
 [project.urls]
 Repository="https://github.com/catalystneuro/meletis-lab-to-nwb"
 

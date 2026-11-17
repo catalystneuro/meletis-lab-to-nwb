@@ -48,8 +48,8 @@ oft/
 - Config shared across sessions: `NEW_vame/config.yaml`
 - NeuroConv interface: `neuroconv.datainterfaces.VameInterface` via ndx-vame; project metadata key `VAME_42`
 - Timing: VAME labels windows of `time_window` frames (30 in the config), so the label and
-  latent files are 30 samples shorter than the pose data. Sample `i` is written at the
-  timestamp of video frame `i + time_window // 2` (the window centre), which gives a
+  latent files are 30 samples shorter than the pose data. Sample `i` is written at
+  `(i + time_window // 2) / 30` s (the window centre at the 30 Hz video rate), which gives a
   `starting_time` of 0.5 s. The lab's `*_aligned.csv` files place label `i` at frame `i`.
 - The run key and `MotifSeries.algorithm` come from `parameterization` in the config (`hmm`).
   The series keeps the name `MotifSeries`.
@@ -112,9 +112,12 @@ oft/
 - 74 sessions use `oft_` prefix
 - Both follow the pattern: `{prefix}_{YYYY-MM-DD}T{HH_MM_SS}`
 - Timezone: Europe/Stockholm (Karolinska Institutet)
+- The session ID keeps the lab's recording name so files can be traced back to the source data;
+  the session description states that the prefix does not indicate the task
 
 ## Decisions
 - Videos stored as external references (not embedded in NWB)
 - Only kinematics columns extracted from aligned CSV (pose/motifs/signal handled by dedicated interfaces)
 - Dots in column names (e.g., `angular.speed`) converted to underscores for NWB
 - Sex extracted from aligned CSV when available, otherwise "U"
+- `group` and `experiment` are also stored in `lab_meta_data["session_metadata"]` (`group`, `cohort`)

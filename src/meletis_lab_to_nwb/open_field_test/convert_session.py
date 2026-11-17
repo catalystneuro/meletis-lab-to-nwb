@@ -7,9 +7,11 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
+from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.open_field_test import OpenFieldTestNWBConverter
+from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
 # Per-group overrides for fiber photometry metadata in the oft_fp sub-experiment.
 # Keys match the `group` column of details.csv; values populate
@@ -164,9 +166,15 @@ def session_to_nwb(
     )
 
     # The run key is the segmentation algorithm, taken from 'parameterization' in the VAME config.
-    vame_config = load_dict_from_file(vame_config_file_path)
-    vame_algorithm = vame_config["parameterization"]
-    vame_source_data = dict(file_path=vame_config_file_path, metadata_key=vame_metadata_key)
+    vame_algorithm = load_dict_from_file(vame_config_file_path)["parameterization"]
+    # VAME labels each window of 'time_window' frames, so the label and latent files are
+    # 'time_window' frames shorter than the pose data. Given the video frame rate, the
+    # interface places sample i at the centre of its window, (i + time_window // 2) / 30 s.
+    vame_source_data = dict(
+        file_path=vame_config_file_path,
+        metadata_key=vame_metadata_key,
+        sampling_frequency_hz=30.0,
+    )
     if vame_motif_file_path is not None:
         vame_source_data["motif_labels_file_paths"] = {vame_algorithm: vame_motif_file_path}
     if vame_latent_vector_file_path is not None:
@@ -194,15 +202,6 @@ def session_to_nwb(
     # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
     timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
     converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
-
-    # VAME labels each window of 'time_window' frames, so the label and latent files are
-    # 'time_window' frames shorter than the pose data. Sample i is placed at the centre of
-    # its window, i.e. at video frame i + time_window // 2.
-    vame_offset_frames = int(vame_config["time_window"]) // 2
-    vame_reference_file_path = vame_motif_file_path or vame_latent_vector_file_path
-    num_vame_samples = np.load(vame_reference_file_path, mmap_mode="r").shape[0]
-    vame_timestamps = timestamps[vame_offset_frames : vame_offset_frames + num_vame_samples]
-    converter.data_interface_objects["VAME"].set_aligned_timestamps(vame_timestamps)
 
     metadata = converter.get_metadata()
     metadata["NWBFile"]["session_start_time"] = session_date
@@ -266,7 +265,12 @@ def session_to_nwb(
         motif_series_metadata_key = f"{vame_metadata_key}_motif_{vame_algorithm}"
         metadata["Behavior"]["Vame"]["MotifSeries"][motif_series_metadata_key]["name"] = "MotifSeries"
 
+    # Store the session's condition labels as structured metadata, not only in the description.
+    nwbfile = make_nwbfile_from_metadata(metadata=metadata)
+    add_session_metadata(nwbfile=nwbfile, group=group, cohort=experiment)
+
     converter.run_conversion(
+        nwbfile=nwbfile,
         metadata=metadata,
         nwbfile_path=nwbfile_path,
         conversion_options=conversion_options,
@@ -297,7 +301,7 @@ if __name__ == "__main__":
     vame_config_path = vame_project_path / "config.yaml"
     signal_path = data_dir_path / "signal_df" / f"{video_name}_signal_df.csv"
     raw_signal_path = data_dir_path / "signal" / f"{video_name}_signal.csv"
-    aligned_path = data_dir_path / "aligned_157" / f"{video_name}_aligned.csv"
+    aligned_path = vame_project_path / f"{video_name}_aligned.csv"
 
     session_to_nwb(
         video_file_path=data_dir_path / "videos" / f"{video_name}.mp4",

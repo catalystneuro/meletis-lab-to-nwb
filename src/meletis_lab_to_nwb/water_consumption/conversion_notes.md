@@ -57,6 +57,11 @@ Following the `opto_dlight` pattern:
 - `dLight_dStr` → dLight1.3b in dorsal caudoputamen (dCP; AP +0.74, ML ±1.5, DV −2.2). Confirmed by lab.
 - `dLight_vStr` → dLight1.3b in central caudoputamen (cCP; AP +0.38, ML +2.0, DV −2.9). Confirmed by lab.
 
+The same table supplies one sentence for the session description that names the indicator and the
+recording site of the session. `group` is also stored in `lab_meta_data["session_metadata"]`.
+The session ID keeps the lab's recording name (`reaching_test_<date>`); the session description
+states that the prefix does not indicate the task.
+
 ## Storage + alignment
 
 - Both FP streams use the CSV-provided timestamps (raw `time` column and processed `Time(s)`
