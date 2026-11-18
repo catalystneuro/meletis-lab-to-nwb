@@ -95,13 +95,18 @@ def session_to_nwb(
         "session_description"
     ] = f"Day {day} from group '{group}' cohort '{experiment}'. {base_description}"
 
-    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+    sex = details_row.get("sex", "u").upper()
     metadata["Subject"].update(
         subject_id=subject_id,
-        sex=details_row.get("sex", "u").upper(),
+        sex=sex if sex in ("M", "F") else "U",
         genotype=details_row.get("line", ""),
-        date_of_birth=date_of_birth,
     )
+    if details_row["DoB"] in ("NA", ""):
+        # The lab has no date of birth for this mouse; use the age range stated in the paper (2-6 months).
+        metadata["Subject"]["age"] = "P2M/P6M"
+    else:
+        date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+        metadata["Subject"]["date_of_birth"] = date_of_birth
 
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"

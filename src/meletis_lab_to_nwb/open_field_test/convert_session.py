@@ -218,13 +218,17 @@ def session_to_nwb(
     metadata["NWBFile"]["session_description"] = f"From group '{group}' experiment '{experiment}'. {base_description}"
 
     t_zone = ZoneInfo("Europe/Stockholm")
-    date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=sex,
         genotype=line,
-        date_of_birth=date_of_birth,
     )
+    if details_row["DoB"] in ("NA", ""):
+        # The lab has no date of birth for this mouse; use the age range stated in the paper (2-6 months).
+        metadata["Subject"]["age"] = "P2M/P6M"
+    else:
+        date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
+        metadata["Subject"]["date_of_birth"] = date_of_birth
 
     # --- Per-group fiber photometry overrides (only for oft_fp sessions with FP data) ---
     if signal_file_path is not None:

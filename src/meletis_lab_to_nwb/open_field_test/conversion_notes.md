@@ -120,4 +120,10 @@ oft/
 - Only kinematics columns extracted from aligned CSV (pose/motifs/signal handled by dedicated interfaces)
 - Dots in column names (e.g., `angular.speed`) converted to underscores for NWB
 - Sex extracted from aligned CSV when available, otherwise "U"
+- Mouse 583415 (session `tmaze_2022-10-17T15_36_04`) has no date of birth in `details.csv`. On the
+  lab's instruction its file carries the age range stated in the paper (`age = "P2M/P6M"`, 2 to 6
+  months) in place of a date of birth.
+- The lab's kinematics columns use a fixed scale of 15.337 px per cm in every session. The floor of
+  the arena spans about 495 px in the 800 x 800 px videos, which is about 32 cm at that scale, while
+  the paper describes a 40 x 40 cm arena. The values are stored as the lab computed them.
 - `group` and `experiment` are also stored in `lab_meta_data["session_metadata"]` (`group`, `cohort`)
