@@ -8,6 +8,7 @@ import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
+from meletis_lab_to_nwb.genotype import normalize_genotype
 from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
 
 # Per-group description of the experimental manipulation. Used to enrich the session
@@ -170,7 +171,7 @@ def session_to_nwb(
     subject_updates = dict(
         subject_id=subject_id,
         sex=sex,
-        genotype=(details_row.get("line") or "").strip().capitalize() or "Unknown",
+        genotype=normalize_genotype(details_row.get("line")),
     )
     if date_of_birth is not None:
         subject_updates["date_of_birth"] = date_of_birth

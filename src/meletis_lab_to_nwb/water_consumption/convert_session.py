@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
+from meletis_lab_to_nwb.genotype import normalize_genotype
 from meletis_lab_to_nwb.water_consumption import WaterConsumptionNWBConverter
 
 # Per-group overrides for fiber photometry metadata. Keys match the `group` column of
@@ -161,7 +162,7 @@ def session_to_nwb(
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=details_row.get("sex", "u").upper(),
-        genotype=details_row.get("line", "").capitalize(),
+        genotype=normalize_genotype(details_row.get("line")),
         date_of_birth=date_of_birth,
     )
 

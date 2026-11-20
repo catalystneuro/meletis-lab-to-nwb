@@ -8,6 +8,7 @@ from pprint import pformat
 
 from tqdm import tqdm
 
+from meletis_lab_to_nwb.genotype import check_genotype_consistency
 from meletis_lab_to_nwb.opto_dlight.convert_session import session_to_nwb
 
 
@@ -36,6 +37,8 @@ def dataset_to_nwb(
     """
     data_dir_path = Path(data_dir_path)
     output_dir_path = Path(output_dir_path)
+    # A mouse can appear in several sub-experiments. Stop when the details.csv files disagree on its line.
+    check_genotype_consistency(data_dir_path=data_dir_path)
     session_to_nwb_kwargs_per_session = get_session_to_nwb_kwargs_per_session(data_dir_path=data_dir_path)
 
     futures = []
