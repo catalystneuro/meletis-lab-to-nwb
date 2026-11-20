@@ -9,6 +9,7 @@ from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timest
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskNWBConverter
+from meletis_lab_to_nwb.genotype import normalize_genotype
 
 
 def session_to_nwb(
@@ -95,7 +96,7 @@ def session_to_nwb(
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=details_row.get("sex", "u").upper(),
-        genotype=details_row.get("line", ""),
+        genotype=normalize_genotype(details_row.get("line")),
         date_of_birth=date_of_birth,
     )
 

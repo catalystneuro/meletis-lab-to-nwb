@@ -192,6 +192,18 @@ python src/meletis_lab_to_nwb/water_consumption/convert_session.py
 python src/meletis_lab_to_nwb/water_consumption/convert_all_sessions.py
 ```
 
+## Subject genotype
+
+The genotype of a subject comes from the `line` column of the `details.csv` file of each sub-experiment.
+All conversions pass it through `normalize_genotype` in
+[`src/meletis_lab_to_nwb/genotype.py`](src/meletis_lab_to_nwb/genotype.py), so one mouse line has one spelling in
+every NWB file (`WT`, `Anxa1-Flp`, `DAT-Cre`, `Anxa1-Flp/DAT-Cre`, `DAT-Cre/Tfam`).
+
+A mouse can appear in several sub-experiments. Each `convert_all_sessions.py` first runs
+`check_genotype_consistency`, which compares the `details.csv` files of all sub-experiment folders. The
+conversion stops with a list of the affected mice when the files give one mouse more than one line. The
+conversion does not choose between the values. The `details.csv` files have to be corrected with the lab first.
+
 ## Video Conversion (AVI → MP4)
 
 Behavioral videos in `water_consumption` and `reaching_test` are recorded as `.avi` files (MPEG-4 Part 2). AVI files

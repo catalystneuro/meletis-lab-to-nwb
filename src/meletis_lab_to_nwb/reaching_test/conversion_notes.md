@@ -80,7 +80,8 @@ reaching_test/
 - Timezone: Europe/Stockholm (parsed with `zoneinfo.ZoneInfo`)
 - Date of birth parsed from `DoB` column (`%d-%b-%y`); left as `None` if missing/unparsable
 - Sex taken from `sex` column; falls back to `"U"` if not `M` or `F`
-- Genotype from `line` column (e.g., `Anxa1-flp`), capitalised
+- Genotype from `line` column, with the spelling shared by all sub-conversions (e.g., `Anxa1-Flp`; see
+  `meletis_lab_to_nwb/genotype.py`)
 
 ## Decisions
 
