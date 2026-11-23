@@ -121,15 +121,21 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
 
 
 if __name__ == "__main__":
-    data_dir_path = Path("/Volumes/T9/data/Meletis/reaching_test")
+    # The 2025 recordings (no pose estimation) are in a separate folder with their own details.csv,
+    # which also lists the earlier sessions; those have no video there and are skipped.
+    data_dir_paths = [
+        Path("/Volumes/T9/data/Meletis/reaching_test"),
+        Path("/Volumes/T9/data/Meletis/NEW_reaching_test"),
+    ]
     output_dir_path = Path("/Users/weian/catalystneuro/meletis-lab-to-nwb/nwb_output/reaching_test")
     max_workers = 4
     stub_test = False
 
-    dataset_to_nwb(
-        data_dir_path=data_dir_path,
-        output_dir_path=output_dir_path,
-        max_workers=max_workers,
-        stub_test=stub_test,
-        verbose=False,
-    )
+    for data_dir_path in data_dir_paths:
+        dataset_to_nwb(
+            data_dir_path=data_dir_path,
+            output_dir_path=output_dir_path,
+            max_workers=max_workers,
+            stub_test=stub_test,
+            verbose=False,
+        )

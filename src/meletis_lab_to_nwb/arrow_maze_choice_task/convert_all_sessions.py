@@ -86,7 +86,8 @@ def get_session_to_nwb_kwargs_per_session(*, data_dir_path: str | Path) -> list[
         A list of dictionaries containing the kwargs for session_to_nwb for each session.
     """
     data_dir_path = Path(data_dir_path)
-    details_file_path = data_dir_path / "details.csv"
+    # The updated table fills in the sex and date of birth that details.csv lacks for 32 sessions.
+    details_file_path = data_dir_path / "details_tmaze_updated.csv"
 
     session_kwargs_list = []
     with open(details_file_path) as f:

@@ -3,11 +3,10 @@
 from pathlib import Path
 
 from neuroconv import NWBConverter
-from neuroconv.datainterfaces import DeepLabCutInterface, ExternalVideoInterface
+from neuroconv.datainterfaces import DeepLabCutInterface, ExternalVideoInterface, VameInterface
 from neuroconv.utils import load_dict_from_file
 
 from .behaviorinterface import OpenFieldTestBehaviorInterface
-from .vameinterface import VameInterface
 from ..external_resources import add_external_resources
 from ..interfaces import FiberPhotometryInterface
 

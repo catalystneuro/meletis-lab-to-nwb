@@ -4,9 +4,11 @@ import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
+from meletis_lab_to_nwb.session_metadata import add_session_metadata
 from meletis_lab_to_nwb.water_consumption import WaterConsumptionNWBConverter
 
 # Per-group overrides for fiber photometry metadata. Keys match the `group` column of
@@ -19,6 +21,7 @@ GROUP_FP_CONFIG = {
         location="Dorsal caudoputamen",
         fiber_insertion_key="dCP",
         indicator_label="dLight1.3b",
+        session_note="Dopamine release was recorded with dLight1.3b in the dorsal caudoputamen (dCP).",
         optical_fiber_name="optical_fiber_cpu",
         indicator_description=(
             "Genetically encoded dopamine indicator dLight1.3b delivered via unilateral "
@@ -31,6 +34,7 @@ GROUP_FP_CONFIG = {
         location="Central caudoputamen",
         fiber_insertion_key="cCP",
         indicator_label="dLight1.3b",
+        session_note="Dopamine release was recorded with dLight1.3b in the central caudoputamen (cCP).",
         optical_fiber_name="optical_fiber_cpu",
         indicator_description=(
             "Genetically encoded dopamine indicator dLight1.3b delivered via unilateral "
@@ -46,6 +50,10 @@ GROUP_FP_CONFIG = {
         optical_fiber_name="optical_fiber_cpu",
         indicator_name="jGCaMP8m",
         indicator_manufacturer="Addgene",
+        session_note=(
+            "Axonal calcium activity of SN dopamine neurons (DAT-Cre) was recorded with jGCaMP8m "
+            "in the dorsal caudoputamen (dCP)."
+        ),
         indicator_description=(
             "Genetically encoded calcium indicator jGCaMP8m expressed pan-DA in SN dopamine "
             "neurons via Cre-dependent AAV in DAT-Cre mice (pGP-AAV9-CAG-FLEX-jGCaMP8m-WPRE, "
@@ -62,6 +70,10 @@ GROUP_FP_CONFIG = {
         optical_fiber_name="optical_fiber_cpu",
         indicator_name="jGCaMP8m",
         indicator_manufacturer="VVF Zurich",
+        session_note=(
+            "Axonal calcium activity of Anxa1+ SN dopamine neurons (Anxa1-Flp) was recorded with "
+            "jGCaMP8m in the dorsal caudoputamen (dCP)."
+        ),
         indicator_description=(
             "Genetically encoded calcium indicator jGCaMP8m selectively expressed in Anxa1+ "
             "SN dopamine neurons via Flp-dependent AAV in Anxa1-Flp mice (AAV-DJ/2-hSyn1-chl-"
@@ -129,6 +141,7 @@ def session_to_nwb(
         fp_source["raw_file_path"] = str(raw_signal_file_path)
 
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
+    video_metadata_key = "video"
     source_data = dict(
         FiberPhotometry=fp_source,
         Behavior=dict(
@@ -136,7 +149,7 @@ def session_to_nwb(
             video_file_path=video_file_path,
             metadata_yaml_path=behavior_metadata_yaml_path,
         ),
-        Video=dict(file_paths=[str(video_file_path)]),
+        Video=dict(file_paths=[str(video_file_path)], metadata_key=video_metadata_key),
     )
     conversion_options = dict(
         FiberPhotometry=dict(stub_test=stub_test),
@@ -171,6 +184,9 @@ def session_to_nwb(
     group = details_row.get("group", "")
     fp_config = GROUP_FP_CONFIG.get(group)
     if fp_config is not None:
+        # State the indicator and recording site of this session in the session description.
+        base_session_description = metadata["NWBFile"]["session_description"].strip()
+        metadata["NWBFile"]["session_description"] = f"{base_session_description} {fp_config['session_note']}"
         metadata["FiberPhotometry"]["location"] = fp_config["location"]
         metadata["FiberPhotometry"]["indicator_label"] = fp_config["indicator_label"]
         metadata["FiberPhotometry"]["OpticalFiber"]["name"] = fp_config["optical_fiber_name"]
@@ -190,11 +206,15 @@ def session_to_nwb(
 
     # Update camera device from behavior_metadata.yaml
     video_device = load_dict_from_file(behavior_metadata_yaml_path)["VideoDevice"]
-    video_key = f"Video {Path(video_file_path).stem}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
+    camera_metadata_key = metadata["Behavior"]["ExternalVideos"][video_metadata_key]["device_metadata_key"]
+    metadata["Devices"][camera_metadata_key] = dict(name=video_device["name"], description=video_device["description"])
+
+    # Store the session's condition labels as structured metadata, not only in the description.
+    nwbfile = make_nwbfile_from_metadata(metadata=metadata)
+    add_session_metadata(nwbfile=nwbfile, group=group)
 
     converter.run_conversion(
+        nwbfile=nwbfile,
         metadata=metadata,
         nwbfile_path=nwbfile_path,
         conversion_options=conversion_options,

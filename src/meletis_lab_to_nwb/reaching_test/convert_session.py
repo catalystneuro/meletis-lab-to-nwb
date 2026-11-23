@@ -6,10 +6,12 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
+from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
+from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
 # Per-group description of the experimental manipulation. Used to enrich the session
 # description so consumers understand the cohort's condition without re-consulting
@@ -42,15 +44,19 @@ LIGHT_DESCRIPTIONS = {
 
 
 def _parse_session_datetime(video_stem: str, tz: ZoneInfo) -> datetime.datetime:
-    """Parse session datetime from a video stem like ``reaching_test_2024-04-16T11_06_09``."""
-    date_str = video_stem.replace("reaching_test_", "")
+    """Parse session datetime from a video stem like ``reaching_test_2024-04-16T11_06_09``.
+
+    The 2025 recordings carry the mouse ID as a suffix (``reaching_test_2025-06-01T13_33_03_914945``),
+    which is not part of the date.
+    """
+    date_str = video_stem.replace("reaching_test_", "")[: len("2024-04-16T11_06_09")]
     return datetime.datetime.strptime(date_str, "%Y-%m-%dT%H_%M_%S").replace(tzinfo=tz)
 
 
 def session_to_nwb(
     *,
     video_file_path: str | Path,
-    pose_estimation_file_path: str | Path,
+    pose_estimation_file_path: str | Path | None,
     behavior_file_path: str | Path | None,
     output_dir_path: str | Path,
     details_row: dict,
@@ -64,9 +70,10 @@ def session_to_nwb(
     ----------
     video_file_path : str or Path
         Path to the lateral behavior video (``*.avi``). Added by external reference.
-    pose_estimation_file_path : str or Path
+    pose_estimation_file_path : str or Path or None
         Path to the DeepLabCut pose-estimation CSV
-        (``*DLC_resnet50_reaching_trainJun9shuffle1_100000.csv``).
+        (``*DLC_resnet50_reaching_trainJun9shuffle1_100000.csv``). Pass ``None`` for
+        sessions without pose estimation (``has_dlc`` is FALSE in details.csv).
     behavior_file_path : str or Path or None
         Path to the manual-annotation CSV (``*_behavior.csv``). Pass ``None`` for
         sessions in which the mouse did not perform any reach attempts (``has_behavior``
@@ -76,7 +83,8 @@ def session_to_nwb(
         created automatically.
     details_row : dict
         One row from ``details.csv``, providing ``mouse.ID``, ``DoB``, ``group``,
-        ``line``, ``sex``, ``phase``, ``light``, ``experiment``, and ``video``.
+        ``line``, ``sex``, ``phase``, ``light``, ``experiment``, and ``video``. The date of
+        birth column is named ``DoB.x`` in the details.csv of the 2025 recordings.
     video_frame_rate_hz : float, optional
         Video frame rate used to convert reach-annotation frames to seconds. Defaults
         to 60 Hz (the FLIR camera used for the reaching test).
@@ -86,7 +94,6 @@ def session_to_nwb(
         Verbose output. Default True.
     """
     video_file_path = Path(video_file_path)
-    pose_estimation_file_path = Path(pose_estimation_file_path)
     subject_id = str(details_row["mouse.ID"]).replace("_", "-")
 
     output_dir_path = Path(output_dir_path) / f"sub-{subject_id}"
@@ -99,17 +106,17 @@ def session_to_nwb(
     nwbfile_path = output_dir_path / f"sub-{subject_id}_ses-{session_id}_behavior+image.nwb"
 
     # --- Assemble source_data ---
-    source_data = dict(
-        Video=dict(file_paths=[str(video_file_path)]),
-        PoseEstimation=dict(
+    video_metadata_key = "video"
+    pose_estimation_metadata_key = "PoseEstimationDeepLabCut"
+    source_data = dict(Video=dict(file_paths=[str(video_file_path)], metadata_key=video_metadata_key))
+    conversion_options = dict(Video=dict())
+    if pose_estimation_file_path is not None:
+        source_data["PoseEstimation"] = dict(
             file_path=str(pose_estimation_file_path),
             subject_name=subject_id,
-        ),
-    )
-    conversion_options = dict(
-        Video=dict(),
-        PoseEstimation=dict(),
-    )
+            metadata_key=pose_estimation_metadata_key,
+        )
+        conversion_options["PoseEstimation"] = dict()
     if behavior_file_path is not None:
         behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
         source_data["Behavior"] = dict(
@@ -123,8 +130,9 @@ def session_to_nwb(
 
     # Set timestamps for DLC from the video file — without a config file, the interface
     # falls back to using the CSV row index [0, 1, 2, ...] which gives rate=1.0.
-    timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
-    converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
+    if pose_estimation_file_path is not None:
+        timestamps = np.array(get_video_timestamps(video_file_path, display_progress=True))
+        converter.data_interface_objects["PoseEstimation"].set_aligned_timestamps(timestamps)
 
     # --- Metadata assembly ---
     tz = ZoneInfo("Europe/Stockholm")
@@ -138,8 +146,8 @@ def session_to_nwb(
     editable_metadata = load_dict_from_file(editable_metadata_path)
     metadata = dict_deep_update(metadata, editable_metadata)
 
-    pose_metadata_path = Path(__file__).parent / "pose_estimation_metadata.yaml"
-    if pose_metadata_path.exists():
+    if pose_estimation_file_path is not None:
+        pose_metadata_path = Path(__file__).parent / "pose_estimation_metadata.yaml"
         metadata = dict_deep_update(metadata, load_dict_from_file(pose_metadata_path))
 
     # --- Enrich the session description with cohort/phase/light context ---
@@ -157,7 +165,7 @@ def session_to_nwb(
     ).strip()
 
     # --- Subject metadata ---
-    dob_raw = details_row.get("DoB", "").strip()
+    dob_raw = (details_row.get("DoB") or details_row.get("DoB.x") or "").strip()
     date_of_birth = None
     if dob_raw:
         try:
@@ -181,20 +189,20 @@ def session_to_nwb(
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"
     video_device = load_dict_from_file(behavior_metadata_yaml_path)["VideoDevice"]
-    video_key = f"Video {video_file_path.stem}"
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["name"] = video_device["name"]
-    metadata["Behavior"]["ExternalVideos"][video_key]["device"]["description"] = video_device["description"]
-    # Replace the DLC auto-generated camera device with the shared video camera device so
-    # both the video and pose estimation reference the same device object in the NWB file.
-    metadata["PoseEstimation"]["Devices"].pop("CameraPoseEstimationDeepLabCut", None)
-    metadata["PoseEstimation"]["Devices"][video_device["name"]] = {
-        "name": video_device["name"],
-        "description": video_device["description"],
-    }
-    for container in metadata["PoseEstimation"]["PoseEstimationContainers"].values():
-        container["devices"] = [video_device["name"]]
+    camera_metadata_key = metadata["Behavior"]["ExternalVideos"][video_metadata_key]["device_metadata_key"]
+    metadata["Devices"][camera_metadata_key] = dict(name=video_device["name"], description=video_device["description"])
+    if pose_estimation_file_path is not None:
+        # Link the pose estimation to the same camera device as the video.
+        metadata["Pose"]["PoseEstimations"][pose_estimation_metadata_key]["device_metadata_key"] = camera_metadata_key
+
+    # Store the session's condition labels as structured metadata, not only in the description.
+    nwbfile = make_nwbfile_from_metadata(metadata=metadata)
+    add_session_metadata(
+        nwbfile=nwbfile, group=group, cohort=experiment, day=phase, light_condition=None if light == "-" else light
+    )
 
     converter.run_conversion(
+        nwbfile=nwbfile,
         metadata=metadata,
         nwbfile_path=nwbfile_path,
         conversion_options=conversion_options,

@@ -29,8 +29,14 @@ tmaze/
 - No DLC config file available (not needed — CSVs parse fine without it)
 - NeuroConv interface: `DeepLabCutInterface`
 
-## Session/Subject Mapping (from details.csv)
+## Session/Subject Mapping (from details_tmaze_updated.csv)
 
+- The conversion reads `details_tmaze_updated.csv`, which fills in the sex and date of birth that
+  `details.csv` lacks for 32 sessions. Two mice (583415, 720084; 8 sessions) have no date of birth or
+  sex in either table. On the lab's instruction their files carry the age range stated in the paper
+  (`age = "P2M/P6M"`, 2 to 6 months) in place of a date of birth, and sex `U`.
+- `group`, `experiment` and `day` are also stored in `lab_meta_data["session_metadata"]`
+  (`group`, `cohort`, `day`)
 - 168 sessions total, 42 mice x 4 days
 - Two sub-experiments:
   - `tmaze_6ohda`: 14 mice (WT line), groups: 6ohda vs asc.acid

@@ -256,7 +256,7 @@ class FiberPhotometryInterface(BaseDataInterface):
             region=[0],
             description=series_meta.get("table_region_description") or "",
         )
-        dff_rate = calculate_regular_series_rate(timestamps, tolerance_decimals=6)
+        dff_rate = calculate_regular_series_rate(timestamps)
         response_series = FiberPhotometryResponseSeries(
             name=series_meta.get("name"),
             description=(series_meta.get("description") or "").format(
@@ -303,7 +303,7 @@ class FiberPhotometryInterface(BaseDataInterface):
                     region=[0],
                     description=zscore_meta.get("table_region_description") or "470 nm signal channel.",
                 )
-                zscore_rate = calculate_regular_series_rate(zscore_t, tolerance_decimals=6)
+                zscore_rate = calculate_regular_series_rate(zscore_t)
                 zscore_series = FiberPhotometryResponseSeries(
                     name=zscore_meta.get("name", "FiberPhotometrySeriesZScored"),
                     description=(zscore_meta.get("description") or "").format(indicator_label=indicator_label),
@@ -317,7 +317,7 @@ class FiberPhotometryInterface(BaseDataInterface):
         # --- Raw acquisition series (optional) → nwbfile.acquisition ---
         if raw_df is not None:
             raw_timestamps = raw_df["time"].values
-            raw_rate = calculate_regular_series_rate(raw_timestamps, tolerance_decimals=6)
+            raw_rate = calculate_regular_series_rate(raw_timestamps)
 
             raw_sig_meta = fp_meta.get("FiberPhotometrySeriesRawSignal", {})
             raw_ref_meta = fp_meta.get("FiberPhotometrySeriesIsosbesticControl", {})

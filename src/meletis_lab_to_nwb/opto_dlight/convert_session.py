@@ -4,10 +4,12 @@ import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.opto_dlight import OptoDlightNWBConverter
+from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
 
 def session_to_nwb(
@@ -145,7 +147,12 @@ def session_to_nwb(
         )
     metadata["FiberPhotometry"]["FiberInsertion"] = fiber_insertions[article_group]
 
+    # Store the session's condition labels as structured metadata, not only in the description.
+    nwbfile = make_nwbfile_from_metadata(metadata=metadata)
+    add_session_metadata(nwbfile=nwbfile, group=group)
+
     converter.run_conversion(
+        nwbfile=nwbfile,
         metadata=metadata,
         nwbfile_path=nwbfile_path,
         conversion_options=conversion_options,
