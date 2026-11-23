@@ -11,9 +11,12 @@ import ndx_hed  # noqa: F401  (imported before files are read, so that their HED
 import numpy as np
 import pytest
 from hed.errors import ErrorHandler, get_printable_issue_string
+from ndx_hed.utils.hed_nwb_validator import HedNWBValidator
 from ndx_pose import Skeleton, Skeletons
+from neuroconv.tools.nwb_helpers import configure_and_write_nwbfile
 from neuroconv.utils import load_dict_from_file
 from pynwb import NWBHDF5IO, NWBFile
+from pynwb.event import EventsTable
 from pynwb.file import Subject
 
 import meletis_lab_to_nwb.interfaces.behaviorinterface as behaviorinterface
@@ -187,10 +190,10 @@ def test_body_parts_resolve_to_the_skeleton(sub_conversion_name, tmp_path):
 
 
 # Reads the meanings and validates the HED of a written file in a fresh Python process that imports only ndx-hed.
-# The Python classes of ndx-optogenetics 0.4.0 (OptogeneticEpochsTable) and ndx-events 0.2.2
-# (AnnotatedEventsTable) do not accept `meanings_tables`, so a process that has imported them reads these
-# tables without their MeaningsTables. The tables are in the file and valid, and a reader that does not import
-# those two packages (PyNWB with the classes generated from the cached schema, MatNWB, h5py) sees them.
+# The Python class of ndx-optogenetics 0.4.0 (OptogeneticEpochsTable) does not accept `meanings_tables`, so a
+# process that has imported it reads the table without its MeaningsTable. The table is in the file and valid,
+# and a reader that does not import ndx_optogenetics (PyNWB with the classes generated from the cached schema,
+# MatNWB, h5py) sees it.
 READ_MEANINGS_SCRIPT = """
 import json, sys
 import numpy as np
@@ -199,7 +202,7 @@ from hed.errors import ErrorHandler, get_printable_issue_string
 from ndx_hed.utils.hed_nwb_validator import HedNWBValidator
 from pynwb import NWBHDF5IO
 
-assert "ndx_events" not in sys.modules and "ndx_optogenetics" not in sys.modules
+assert "ndx_optogenetics" not in sys.modules
 result = dict(tables=[], hed_issues="")
 with NWBHDF5IO(sys.argv[1], "r") as io:
     nwbfile = io.read()
@@ -218,9 +221,9 @@ with NWBHDF5IO(sys.argv[1], "r") as io:
                 in_file=sorted(set(np.asarray(meanings_table.target.data[:]).tolist())),
             ))
     validator = HedNWBValidator(nwbfile.lab_meta_data["hed_schema"])
-    # assemble=False: ndx-hed 0.3.0 cannot assemble the rows of a table with a ragged column or a
-    # DynamicTableRegion column (get_bids_dataframe compares array cells with ""), and both tables here have
-    # one. Each HED string and each column is still validated.
+    # assemble=False: ndx-hed 0.3.0 cannot assemble the rows of a table with a DynamicTableRegion column
+    # (get_bids_dataframe compares array cells with ""), and optogenetic_epochs has one (optogenetic_sites).
+    # Each HED string and each column is still validated.
     issues = validator.validate_file(nwbfile, ErrorHandler(check_for_warnings=True), assemble=False)
     result["hed_issues"] = get_printable_issue_string(issues) if issues else ""
 print(json.dumps(result))
@@ -261,10 +264,12 @@ def test_every_hed_string_validates(hed_string_owner):
     annotations = _load_annotations(hed_string_owner)
     schema = load_schema_version(annotations["hed_schema_version"])
     validator = HedValidator(schema)
-    for columns in annotations["tables"].values():
-        for entries in columns.values():
+    for table_name, columns in annotations["tables"].items():
+        for column_name, entries in columns.items():
             for entry in entries.values():
-                assert entry["meaning"]
+                # The interface writes the meanings of the reaching event types itself
+                if (table_name, column_name) != ("reaching_events", "label"):
+                    assert entry["meaning"]
                 if entry.get("hed"):
                     issues = validator.validate(
                         HedString(entry["hed"], schema),
@@ -275,7 +280,7 @@ def test_every_hed_string_validates(hed_string_owner):
 
 
 def test_reaching_meanings_match_the_event_descriptions():
-    """The two reaching sub-conversions share the interface, so their meanings are the same."""
+    """The two reaching sub-conversions share the interface, so their annotations are the same."""
     assert _load_annotations("reaching_test") == _load_annotations("water_consumption")
     labels = set(_load_annotations("reaching_test")["tables"]["reaching_events"]["label"])
     assert labels == set(behaviorinterface.DEFAULT_EVENT_TYPE_DESCRIPTIONS)
@@ -283,25 +288,41 @@ def test_reaching_meanings_match_the_event_descriptions():
     assert paws == set(behaviorinterface.PAW_NORMALIZATION.values()) | {"unknown"}
 
 
+# A made-up annotation CSV with every event type and body-part code of the raw files, in the rich format
+# (pixel columns written with dots, as in some raw files) and with one row that has nothing annotated.
+REACHING_CSV = (
+    "frame,paw,event.type,target.x,target.y,paw.x,paw.y,reference.px.,distance.px.,distance.cm.\n"
+    "60,L,semi-drop,101,201,111,211,50,12.5,0.25\n"
+    "10,L,C,102,202,112,212,50,10.0,0.2\n"
+    "20,R,M,103,203,,,50,,\n"
+    "30,L,missed,104,204,114,214,50,14.0,0.28\n"
+    "40,mouth,E,105,205,115,215,50,15.0,0.3\n"
+    "50,R,drop,106,206,116,216,50,16.0,0.32\n"
+    "70,,,,,,,,,\n"
+)
+# What each row must become: (frame, label, paw, target_x, paw_x, distance_cm), in time order
+REACHING_ROWS = [
+    (10, "correct", "left", 102.0, 112.0, 0.2),
+    (20, "miss", "right", 103.0, np.nan, np.nan),
+    (30, "miss", "left", 104.0, 114.0, 0.28),
+    (40, "empty", "mouth", 105.0, 115.0, 0.3),
+    (50, "drop", "right", 106.0, 116.0, 0.32),
+    (60, "semidrop", "left", 101.0, 111.0, 0.25),
+    (70, "unknown", "unknown", np.nan, np.nan, np.nan),
+]
+
+
 @pytest.mark.parametrize("sub_conversion_name", ["reaching_test", "water_consumption"])
 def test_reaching_events_annotations(sub_conversion_name, tmp_path, monkeypatch):
-    # A made-up annotation CSV with every event type and body-part code of the raw files
     annotation_file_path = tmp_path / "session_behavior.csv"
-    annotation_file_path.write_text(
-        "frame,paw,event.type\n"
-        "10,L,C\n"
-        "20,R,M\n"
-        "30,L,missed\n"
-        "40,mouth,E\n"
-        "50,R,drop\n"
-        "60,L,semi-drop\n"
-        "70,,\n"
-    )
-    monkeypatch.setattr(behaviorinterface, "get_video_timestamps", lambda file_path: np.arange(1000) / 60.0)
+    annotation_file_path.write_text(REACHING_CSV)
+    frame_rate = 60.0
+    monkeypatch.setattr(behaviorinterface, "get_video_timestamps", lambda file_path: np.arange(1000) / frame_rate)
+    behavior_metadata_path = PACKAGE_PATH / sub_conversion_name / "behavior_metadata.yaml"
     interface = ReachingBehaviorInterface(
         file_path=annotation_file_path,
         video_file_path=tmp_path / "session.avi",
-        metadata_yaml_path=PACKAGE_PATH / sub_conversion_name / "behavior_metadata.yaml",
+        metadata_yaml_path=behavior_metadata_path,
     )
     nwbfile = _make_nwbfile(sub_conversion_name, genotype="DAT-Cre")
     interface.add_to_nwbfile(nwbfile=nwbfile, metadata=interface.get_metadata())
@@ -310,14 +331,50 @@ def test_reaching_events_annotations(sub_conversion_name, tmp_path, monkeypatch)
     add_value_meanings(nwbfile=nwbfile, annotations=annotations)
     add_external_resources(nwbfile=nwbfile, terms=_load_terms(sub_conversion_name))
     nwbfile_path = tmp_path / "session.nwb"
-    with NWBHDF5IO(nwbfile_path, "w") as io:
-        io.write(nwbfile)
+    # Written the way NeuroConv's run_conversion writes it (with its default HDF5 backend configuration)
+    configure_and_write_nwbfile(nwbfile=nwbfile, nwbfile_path=nwbfile_path, backend="hdf5")
 
-    found = _check_meanings_and_hed(nwbfile_path, annotations)
-    assert found == {
-        ("reaching_events", "label"): {"correct", "miss", "empty", "drop", "semidrop", "unknown"},
-        ("reaching_events", "paw"): {"left", "right", "mouth", "unknown"},
+    # Read back in this process, with every package of the conversion imported
+    event_descriptions = load_dict_from_file(behavior_metadata_path)["Behavior"]["ReachingEvents"]["EventTypes"]
+    expected_meanings = {
+        "label": {label: entry["description"].strip() for label, entry in event_descriptions.items()},
+        "paw": {value: entry["meaning"] for value, entry in annotations["tables"]["reaching_events"]["paw"].items()},
     }
+    with NWBHDF5IO(nwbfile_path, "r") as io:
+        read_nwbfile = io.read()
+        reach_events = read_nwbfile.processing["behavior"]["reaching_events"]
+        assert isinstance(reach_events, EventsTable)
+        assert reach_events["timestamp"].resolution == 1.0 / frame_rate
+
+        # Every annotated event is a row, in time order, with all of its values
+        table = reach_events.to_dataframe()
+        assert len(table) == len(REACHING_ROWS)
+        for (_, row), (frame, label, paw, target_x, paw_x, distance_cm) in zip(table.iterrows(), REACHING_ROWS):
+            assert row["timestamp"] == frame / frame_rate
+            assert (row["frame"], row["label"], row["paw"]) == (frame, label, paw)
+            np.testing.assert_equal([row["target_x"], row["paw_x"], row["distance_cm"]], [target_x, paw_x, distance_cm])
+        assert table.loc[
+            table["frame"] == 10, ["target_y", "paw_y", "reference_px", "distance_px"]
+        ].values.tolist() == [[202.0, 212.0, 50.0, 10.0]]
+
+        # The MeaningsTables survive the round trip and describe every value of their column
+        assert set(reach_events.meanings_tables) == {"label_meanings", "paw_meanings"}
+        for column_name in ["label", "paw"]:
+            meanings_table = reach_events.get_meanings_for_column(column_name)
+            values = meanings_table["value"].data[:].tolist()
+            assert len(values) == len(set(values))
+            assert set(table[column_name]) <= set(values)
+            assert dict(zip(values, meanings_table["meaning"].data[:])) == expected_meanings[column_name]
+            expected_hed = {
+                value: entry.get("hed", "")
+                for value, entry in annotations["tables"]["reaching_events"][column_name].items()
+            }
+            assert dict(zip(values, meanings_table["HED"].data[:])) == expected_hed
+
+        # HED validates, with the HED of each row assembled from its label and its paw
+        validator = HedNWBValidator(read_nwbfile.lab_meta_data["hed_schema"])
+        issues = validator.validate_file(read_nwbfile, ErrorHandler(check_for_warnings=True), assemble=True)
+        assert not issues, get_printable_issue_string(issues)
 
 
 def test_opto_dlight_session_on_made_up_data(tmp_path):

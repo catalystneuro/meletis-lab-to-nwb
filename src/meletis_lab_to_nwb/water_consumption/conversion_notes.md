@@ -45,7 +45,7 @@ Following the `opto_dlight` pattern:
 
 - `WaterConsumptionNWBConverter` aggregates three interfaces: `FiberPhotometry`, `Behavior`, `Video` (ExternalVideoInterface — the .avi is referenced, not copied).
 - `FiberPhotometryInterface` subclasses `opto_dlight.FiberPhotometryInterface` and only overrides the metadata YAML path. The CSV formats are identical between the two experiments.
-- `ReachingBehaviorInterface` parses the annotation CSV, converts frame indices to event times using the video frame rate, and writes a `TimeIntervals` table named `reaching_events` with custom columns for paw, event_type, target/paw coordinates, and distance.
+- `ReachingBehaviorInterface` parses the annotation CSV, converts frame indices to event times using the video frame rate, and writes a core NWB `EventsTable` named `reaching_events` (one row per event: `timestamp`, `label` for the outcome, `frame`, `paw`, target/paw coordinates, and distances). The description of each outcome is in its `label_meanings` MeaningsTable. Before November 2026 this was an ndx-events 0.2.2 `AnnotatedEventsTable` with one row per event type.
 
 ## Per-session metadata dispatch
 
@@ -94,9 +94,10 @@ checked in its registry.
 
 ## Value Meanings and HED
 
-`value_meanings.yaml` describes the two categorical columns of `reaching_events` (written with
-`meletis_lab_to_nwb/value_meanings.py` as MeaningsTables). The meanings follow the descriptions in
-`behavior_metadata.yaml`.
+`reaching_events` has a MeaningsTable for each of its two categorical columns. `ReachingBehaviorInterface`
+writes `label_meanings` from the `EventTypes` descriptions in `behavior_metadata.yaml`, and
+`meletis_lab_to_nwb/value_meanings.py` adds the HED from `value_meanings.yaml` to it. `paw_meanings` comes
+from `value_meanings.yaml`.
 
 | `label` | HED |
 |---|---|
@@ -107,10 +108,12 @@ checked in its registry.
 | semidrop | `Agent-action, Reach, Grasp, Drop, Label/Partial-drop` |
 | unknown | `Agent-action, Reach` |
 
-The `paw` values (`left`, `right`, `mouth`, `unknown`) have meanings and no HED: `paw` is a ragged column,
-and ndx-hed 0.3.0 reads the index of a ragged column in place of its values. The HED was drafted from the
-meanings and validated against HED 8.4.0 with hedtools. It was not reviewed by a HED expert.
+| `paw` | HED |
+|---|---|
+| left | `(Left, Hand)` |
+| right | `(Right, Hand)` |
+| mouth | `Mouth` |
+| unknown | `(Body-part, Unknown)` |
 
-The Python class of ndx-events 0.2.2 (`AnnotatedEventsTable`) does not accept `meanings_tables`. A reader
-that imports `ndx_events` reads the table without its MeaningsTables. The tables are in the file, and PyNWB
-without that import (classes generated from the cached schema), MatNWB and h5py see them.
+The HED was drafted from the meanings and validated against HED 8.4.0 with hedtools, each string on its
+own and each row of the table assembled from its `label` and its `paw`. It was not reviewed by a HED expert.

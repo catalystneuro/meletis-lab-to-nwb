@@ -46,9 +46,12 @@ reaching_test/
 - Sessions where the mouse performed no attempts have no annotation file (`has_behavior` FALSE in
   `details.csv`); those sessions are converted without the `Behavior` interface — no `reaching_events`
   table is written
-- NWB location: `processing/behavior/reaching_events` (ndx-events `AnnotatedEventsTable`)
-  - One row per event type with ragged `event_times`, `frame`, `paw`, `target_x`, `target_y`,
-    `paw_x`, `paw_y`, `reference_px`, `distance_px`, `distance_cm`
+- NWB location: `processing/behavior/reaching_events` (core NWB `EventsTable`, NWB 2.11 / PyNWB 4.2)
+  - One row per event, in time order, with `timestamp`, `label` (the outcome), `frame`, `paw`,
+    `target_x`, `target_y`, `paw_x`, `paw_y`, `reference_px`, `distance_px`, `distance_cm`
+  - The description of each outcome is in the `label_meanings` MeaningsTable of the table
+  - Before November 2026 this was an ndx-events 0.2.2 `AnnotatedEventsTable` with one row per event
+    type and ragged columns. The published files of DANDI:001828 have that layout.
 - NeuroConv interface: Custom `ReachingBehaviorInterface` (shared with `water_consumption`);
   `metadata_yaml_path` is passed explicitly from `convert_session.py` pointing to
   `reaching_test/behavior_metadata.yaml`
@@ -90,8 +93,8 @@ reaching_test/
   `frame_index / frame_rate` gives seconds directly relative to `session_start_time`
 - Sessions with `has_behavior == FALSE` omit the `Behavior` interface entirely — no
   empty/placeholder table is written
-- `paw.x` / `paw.y` per-event pixel positions are stored as flat ragged columns (`paw_x`, `paw_y`)
-  directly in the `AnnotatedEventsTable`
+- `paw.x` / `paw.y` per-event pixel positions are stored as the columns `paw_x` and `paw_y` of the
+  `EventsTable`
 - DLC confidence (likelihood) stored as the `confidence` field of each `PoseEstimationSeries`;
   no threshold is applied during conversion — filtering is left to downstream analysis
 - Skeleton defined with 4 edges only (limb chain + snout/tongue to mouth); the `extra` keypoint
@@ -158,9 +161,10 @@ checked in its registry.
 
 ## Value Meanings and HED
 
-`value_meanings.yaml` describes the two categorical columns of `reaching_events` (written with
-`meletis_lab_to_nwb/value_meanings.py` as MeaningsTables). The meanings follow the descriptions in
-`behavior_metadata.yaml`.
+`reaching_events` has a MeaningsTable for each of its two categorical columns. `ReachingBehaviorInterface`
+writes `label_meanings` from the `EventTypes` descriptions in `behavior_metadata.yaml`, and
+`meletis_lab_to_nwb/value_meanings.py` adds the HED from `value_meanings.yaml` to it. `paw_meanings` comes
+from `value_meanings.yaml`.
 
 | `label` | HED |
 |---|---|
@@ -171,10 +175,12 @@ checked in its registry.
 | semidrop | `Agent-action, Reach, Grasp, Drop, Label/Partial-drop` |
 | unknown | `Agent-action, Reach` |
 
-The `paw` values (`left`, `right`, `mouth`, `unknown`) have meanings and no HED: `paw` is a ragged column,
-and ndx-hed 0.3.0 reads the index of a ragged column in place of its values. The HED was drafted from the
-meanings and validated against HED 8.4.0 with hedtools. It was not reviewed by a HED expert.
+| `paw` | HED |
+|---|---|
+| left | `(Left, Hand)` |
+| right | `(Right, Hand)` |
+| mouth | `Mouth` |
+| unknown | `(Body-part, Unknown)` |
 
-The Python class of ndx-events 0.2.2 (`AnnotatedEventsTable`) does not accept `meanings_tables`. A reader
-that imports `ndx_events` reads the table without its MeaningsTables. The tables are in the file, and PyNWB
-without that import (classes generated from the cached schema), MatNWB and h5py see them.
+The HED was drafted from the meanings and validated against HED 8.4.0 with hedtools, each string on its
+own and each row of the table assembled from its `label` and its `paw`. It was not reviewed by a HED expert.

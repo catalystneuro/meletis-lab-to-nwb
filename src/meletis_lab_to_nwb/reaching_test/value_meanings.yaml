@@ -1,37 +1,35 @@
 # Meanings of the values of categorical columns, with HED (Hierarchical Event Descriptors) where a tag fits.
 # Written into the files by meletis_lab_to_nwb.value_meanings.add_value_meanings.
-# The meanings are the event and column descriptions in behavior_metadata.yaml. The HED strings were drafted
-# from those meanings and validated against HED 8.4.0 with hedtools. They were not reviewed by a HED expert.
+# The HED strings were drafted from the meanings and validated against HED 8.4.0 with hedtools, each string on
+# its own and each row of the table assembled. They were not reviewed by a HED expert.
 hed_schema_version: "8.4.0"
 tables:
   reaching_events:
+    # The meaning of each event type is written by ReachingBehaviorInterface into the label_meanings table,
+    # from the EventTypes descriptions in behavior_metadata.yaml. Only the HED is added here.
     label:
       correct:
-        meaning: Successful reach. The paw contacted the spout and the water droplet was retrieved.
         hed: Agent-action, Reach, (Touch, Target), Correct-action, Reward
       miss:
-        meaning: Reach attempt that did not contact the spout.
         hed: Agent-action, Reach, Miss
       empty:
-        meaning: Reach directed at an empty spout (no water droplet available).
         hed: Agent-action, Reach, Label/Empty-spout
       drop:
-        meaning: The water droplet was grasped but dropped before retrieval.
         hed: Agent-action, Reach, Grasp, Drop
       semidrop:
-        meaning: Partial drop. Some of the water was retrieved and some was lost.
         hed: Agent-action, Reach, Grasp, Drop, Label/Partial-drop
       unknown:
-        meaning: Reach whose outcome was not annotated in the source CSV or whose code was not recognized.
         hed: Agent-action, Reach
-    # paw is a ragged column (several values per row). ndx-hed 0.3.0 reads the index of a ragged column
-    # instead of its values, so its values have meanings but no HED.
     paw:
       left:
         meaning: The left forepaw contacted (or attempted to contact) the spout.
+        hed: (Left, Hand)
       right:
         meaning: The right forepaw contacted (or attempted to contact) the spout.
+        hed: (Right, Hand)
       mouth:
         meaning: The mouth contacted (or attempted to contact) the spout.
+        hed: Mouth
       unknown:
         meaning: The body part was not annotated in the source CSV, or its code was not recognized.
+        hed: (Body-part, Unknown)

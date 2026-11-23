@@ -16,6 +16,7 @@ classifiers = [
 
 dependencies = [
   "neuroconv==0.9.3",
+  "pynwb>=4.2.0",
   "nwbinspector",
   "ndx-vame",
   "ipykernel>=7.2.0",

@@ -121,3 +121,6 @@ meanings and validated against HED 8.4.0 with hedtools. It was not reviewed by a
 The Python class of ndx-optogenetics 0.4.0 (`OptogeneticEpochsTable`) does not accept `meanings_tables`.
 A reader that imports `ndx_optogenetics` reads the table without its MeaningsTable. The table is in the
 file, and PyNWB without that import (classes generated from the cached schema), MatNWB and h5py see it.
+This is a known limitation until ndx-optogenetics passes `meanings_tables` through. ndx-hed 0.3.0 also
+cannot assemble the rows of a table with a `DynamicTableRegion` column (`optogenetic_sites`), so this HED
+is validated string by string and column by column, without row assembly.
