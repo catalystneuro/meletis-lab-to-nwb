@@ -1,0 +1,16 @@
+# Meanings of the values of categorical columns, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Written into the files by meletis_lab_to_nwb.value_meanings.add_value_meanings.
+# The HED strings were drafted from the meanings and validated against HED 8.4.0 with hedtools.
+# They were not reviewed by a HED expert.
+hed_schema_version: "8.4.0"
+tables:
+  optogenetic_epochs:
+    stimulation_on:
+      true:
+        meaning: >-
+          The 640 nm laser was on. A train of light pulses was delivered through both SNc optical fibers
+          during this epoch. Each epoch is one stimulation burst triggered by a nosepoke.
+        hed: Condition-variable/Laser-on, Experimental-stimulus
+      false:
+        meaning: The laser was off during this epoch. The conversion writes no such epochs.
+        hed: Condition-variable/Laser-off

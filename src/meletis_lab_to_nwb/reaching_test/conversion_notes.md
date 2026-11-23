@@ -55,9 +55,12 @@ reaching_test/
 - Sessions where the mouse performed no attempts have no annotation file (`has_behavior` FALSE in
   `details.csv`); those sessions are converted without the `Behavior` interface — no `reaching_events`
   table is written
-- NWB location: `processing/behavior/reaching_events` (ndx-events `AnnotatedEventsTable`)
-  - One row per event type with ragged `event_times`, `frame`, `paw`, `target_x`, `target_y`,
-    `paw_x`, `paw_y`, `reference_px`, `distance_px`, `distance_cm`
+- NWB location: `processing/behavior/reaching_events` (core NWB `EventsTable`, NWB 2.11 / PyNWB 4.2)
+  - One row per event, in time order, with `timestamp`, `label` (the outcome), `frame`, `paw`,
+    `target_x`, `target_y`, `paw_x`, `paw_y`, `reference_px`, `distance_px`, `distance_cm`
+  - The description of each outcome is in the `label_meanings` MeaningsTable of the table
+  - Before November 2026 this was an ndx-events 0.2.2 `AnnotatedEventsTable` with one row per event
+    type and ragged columns. The published files of DANDI:001828 have that layout.
 - NeuroConv interface: Custom `ReachingBehaviorInterface` (shared with `water_consumption`);
   `metadata_yaml_path` is passed explicitly from `convert_session.py` pointing to
   `reaching_test/behavior_metadata.yaml`
@@ -89,7 +92,8 @@ reaching_test/
 - Timezone: Europe/Stockholm (parsed with `zoneinfo.ZoneInfo`)
 - Date of birth parsed from `DoB` column (`%d-%b-%y`); left as `None` if missing/unparsable
 - Sex taken from `sex` column; falls back to `"U"` if not `M` or `F`
-- Genotype from `line` column (e.g., `Anxa1-flp`), capitalised
+- Genotype from `line` column, with the spelling shared by all sub-conversions (e.g., `Anxa1-Flp`; see
+  `meletis_lab_to_nwb/genotype.py`)
 
 ## Decisions
 
@@ -98,8 +102,8 @@ reaching_test/
   `frame_index / frame_rate` gives seconds directly relative to `session_start_time`
 - Sessions with `has_behavior == FALSE` omit the `Behavior` interface entirely — no
   empty/placeholder table is written
-- `paw.x` / `paw.y` per-event pixel positions are stored as flat ragged columns (`paw_x`, `paw_y`)
-  directly in the `AnnotatedEventsTable`
+- `paw.x` / `paw.y` per-event pixel positions are stored as the columns `paw_x` and `paw_y` of the
+  `EventsTable`
 - DLC confidence (likelihood) stored as the `confidence` field of each `PoseEstimationSeries`;
   no threshold is applied during conversion — filtering is left to downstream analysis
 - Skeleton defined with 4 edges only (limb chain + snout/tongue to mouth); the `extra` keypoint
@@ -143,3 +147,49 @@ reaching_test/
   on read
 - Some event type entries use `emopty` (typo for `empty`); normalised to `empty` in
   `EVENT_TYPE_NORMALIZATION`
+
+## Ontology Annotation (HERD)
+
+`external_resources.yaml` links values in the files to external terms. The converter writes them as HERD
+references (`nwbfile.external_resources`) with `meletis_lab_to_nwb/external_resources.py`. Every id was
+checked in its registry.
+
+- Species `Mus musculus`: NCBITaxon:10090.
+- Institution `Karolinska Institutet`: ROR:056d84691.
+- Experimenters: Mantas, Ioannis (ORCID 0000-0001-6288-5439), Contestabile, Alessandro
+  (ORCID 0000-0001-6528-1403), Skara, Vasiliki (ORCID 0000-0002-0017-6116). The ORCIDs are in the
+  Crossref author lists of two Meletis lab papers (10.1126/sciadv.adx9450, 10.1101/2025.09.09.675138).
+- Strain: wild-type subjects (genotype `WT`) are written with strain `C57BL/6NCrl` and linked to
+  RRID:IMSR_CRL:027, because the paper's Methods say the C57BL/6N mice came from Charles River. Transgenic
+  subjects keep strain `C57BL/6N` without a term. DAT-Cre is probably RRID:IMSR_JAX:006660, but the paper
+  does not name the source, so it waits for the lab to confirm. Anxa1-Flp (a new line made for the paper)
+  and the Tfam loxP (MitoPark) line have no RRID.
+- Pose-estimation keypoints (UBERON): snout 0006333, tongue 0001723, palm 0008878 (palmar part of manus),
+  wrist 0004452 (carpal region), elbow 0001461, mouth 0000165. `spout` (on the rig) and `extra` are not
+  anatomy and are not linked.
+
+## Value Meanings and HED
+
+`reaching_events` has a MeaningsTable for each of its two categorical columns. `ReachingBehaviorInterface`
+writes `label_meanings` from the `EventTypes` descriptions in `behavior_metadata.yaml`, and
+`meletis_lab_to_nwb/value_meanings.py` adds the HED from `value_meanings.yaml` to it. `paw_meanings` comes
+from `value_meanings.yaml`.
+
+| `label` | HED |
+|---|---|
+| correct | `Agent-action, Reach, (Touch, Target), Correct-action, Reward` |
+| miss | `Agent-action, Reach, Miss` |
+| empty | `Agent-action, Reach, Label/Empty-spout` |
+| drop | `Agent-action, Reach, Grasp, Drop` |
+| semidrop | `Agent-action, Reach, Grasp, Drop, Label/Partial-drop` |
+| unknown | `Agent-action, Reach` |
+
+| `paw` | HED |
+|---|---|
+| left | `(Left, Hand)` |
+| right | `(Right, Hand)` |
+| mouth | `Mouth` |
+| unknown | `(Body-part, Unknown)` |
+
+The HED was drafted from the meanings and validated against HED 8.4.0 with hedtools, each string on its
+own and each row of the table assembled from its `label` and its `paw`. It was not reviewed by a HED expert.

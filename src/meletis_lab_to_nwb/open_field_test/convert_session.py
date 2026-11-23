@@ -10,6 +10,7 @@ from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timest
 from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.open_field_test import OpenFieldTestNWBConverter
 from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
@@ -149,7 +150,7 @@ def session_to_nwb(
 
     group = details_row["group"]
     experiment = details_row.get("experiment", "")
-    line = details_row["line"]
+    line = normalize_genotype(details_row["line"])
     session_date = _parse_session_date(video_name)
     sex = _get_sex(Path(aligned_file_path) if aligned_file_path is not None else None)
 
@@ -229,6 +230,7 @@ def session_to_nwb(
     else:
         date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
         metadata["Subject"]["date_of_birth"] = date_of_birth
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # --- Per-group fiber photometry overrides (only for oft_fp sessions with FP data) ---
     if signal_file_path is not None:

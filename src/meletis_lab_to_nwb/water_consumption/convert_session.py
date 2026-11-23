@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.session_metadata import add_session_metadata
 from meletis_lab_to_nwb.water_consumption import WaterConsumptionNWBConverter
 
@@ -174,9 +175,10 @@ def session_to_nwb(
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=details_row.get("sex", "u").upper(),
-        genotype=details_row.get("line", "").capitalize(),
+        genotype=normalize_genotype(details_row.get("line")),
         date_of_birth=date_of_birth,
     )
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # --- Per-group fiber photometry overrides (indicator + location + fiber insertion) ---
     group = details_row.get("group", "")

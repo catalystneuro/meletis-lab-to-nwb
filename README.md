@@ -221,6 +221,39 @@ python src/meletis_lab_to_nwb/water_consumption/convert_session.py
 python src/meletis_lab_to_nwb/water_consumption/convert_all_sessions.py
 ```
 
+## Subject genotype
+
+The genotype of a subject comes from the `line` column of the `details.csv` file of each sub-experiment.
+All conversions pass it through `normalize_genotype` in
+[`src/meletis_lab_to_nwb/genotype.py`](src/meletis_lab_to_nwb/genotype.py), so one mouse line has one spelling in
+every NWB file (`WT`, `Anxa1-Flp`, `DAT-Cre`, `Anxa1-Flp/DAT-Cre`, `DAT-Cre/Tfam`).
+
+A mouse can appear in several sub-experiments. Each `convert_all_sessions.py` first runs
+`check_genotype_consistency`, which compares the `details.csv` files of all sub-experiment folders. The
+conversion stops with a list of the affected mice when the files give one mouse more than one line. The
+conversion does not choose between the values. The `details.csv` files have to be corrected with the lab first.
+
+## Annotations (HERD and HED)
+
+Each sub-conversion has an `external_resources.yaml` that links values in the files to ontology terms (species,
+institution, experimenters, the wild-type strain, Allen Mouse Brain Atlas regions and UBERON body parts). The
+converters store them as HERD references, read back with `nwbfile.external_resources.to_dataframe()`. The opto+dLight,
+reaching test and water consumption conversions also have a `value_meanings.yaml` with the meaning and a HED
+annotation of each value of their categorical columns, stored as MeaningsTables (`ndx-hed`).
+
+The reach annotations of the reaching test and the water consumption are a core NWB `EventsTable` at
+`processing/behavior/reaching_events`, with one row per reach. Read it with:
+
+```python
+from pynwb import NWBHDF5IO
+
+with NWBHDF5IO("session.nwb", "r") as io:
+    nwbfile = io.read()
+    reach_events = nwbfile.processing["behavior"]["reaching_events"]
+    reaches = reach_events.to_dataframe()  # timestamp, label, frame, paw, target_x, ..., distance_cm
+    outcomes = reach_events.get_meanings_for_column("label").to_dataframe()  # value, meaning, HED
+```
+
 ## Video Conversion (AVI → MP4)
 
 Behavioral videos in `water_consumption` and `reaching_test` are recorded as `.avi` files (MPEG-4 Part 2). AVI files

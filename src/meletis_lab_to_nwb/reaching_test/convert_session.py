@@ -9,6 +9,7 @@ from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timest
 from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
 from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
@@ -178,11 +179,12 @@ def session_to_nwb(
     subject_updates = dict(
         subject_id=subject_id,
         sex=sex,
-        genotype=(details_row.get("line") or "").strip().capitalize() or "Unknown",
+        genotype=normalize_genotype(details_row.get("line")),
     )
     if date_of_birth is not None:
         subject_updates["date_of_birth"] = date_of_birth
     metadata["Subject"].update(subject_updates)
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"

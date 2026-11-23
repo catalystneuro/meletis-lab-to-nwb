@@ -1,0 +1,31 @@
+# Terms for the values written in the NWB files, stored as HERD references by
+# meletis_lab_to_nwb.external_resources.add_external_resources. Keys are the values exactly as written.
+# Every id was checked in its registry on 2026-11-22: NCBITaxon and UBERON on the EBI Ontology Lookup
+# Service, MBA on api.brain-map.org (adult mouse structure graph), ROR on api.ror.org, the ORCIDs through
+# the Crossref author lists of Meletis lab papers (10.1126/sciadv.adx9450, 10.1101/2025.09.09.675138), and
+# the RRID on the SciCrunch resolver.
+species:
+  Mus musculus: {id: "NCBITaxon:10090", uri: "http://purl.obolibrary.org/obo/NCBITaxon_10090"}
+strain:
+  # Wild-type mice only: the paper's Methods say C57BL/6N mice were purchased from Charles River.
+  # Transgenic mice keep strain C57BL/6N without a term (the source of each line is not confirmed).
+  C57BL/6NCrl: {id: "RRID:IMSR_CRL:027", uri: "https://scicrunch.org/resolver/RRID:IMSR_CRL:027"}
+institution:
+  Karolinska Institutet: {id: "ROR:056d84691", uri: "https://ror.org/056d84691"}
+experimenter:
+  Mantas, Ioannis: {id: "ORCID:0000-0001-6288-5439", uri: "https://orcid.org/0000-0001-6288-5439"}
+  Contestabile, Alessandro: {id: "ORCID:0000-0001-6528-1403", uri: "https://orcid.org/0000-0001-6528-1403"}
+  Skara, Vasiliki: {id: "ORCID:0000-0002-0017-6116", uri: "https://orcid.org/0000-0002-0017-6116"}
+brain_regions:
+  # The Allen atlas has no dorsal or central subdivision of the caudoputamen, so the two fiber sites
+  # are linked to the caudoputamen itself (MBA:672), the atlas structure that contains them.
+  Caudoputamen: {id: "MBA:672", uri: "http://purl.obolibrary.org/obo/MBA_672"}
+  Dorsal caudoputamen: {id: "MBA:672", uri: "http://purl.obolibrary.org/obo/MBA_672"}
+  Central caudoputamen: {id: "MBA:672", uri: "http://purl.obolibrary.org/obo/MBA_672"}
+body_parts:
+  # DeepLabCut keypoints. tailBase has no UBERON term and is left out.
+  snout: {id: "UBERON:0006333", uri: "http://purl.obolibrary.org/obo/UBERON_0006333"}
+  leftFrontPaw: {id: "UBERON:0002398", uri: "http://purl.obolibrary.org/obo/UBERON_0002398"}  # manus
+  rightFrontPaw: {id: "UBERON:0002398", uri: "http://purl.obolibrary.org/obo/UBERON_0002398"}  # manus
+  leftBackPaw: {id: "UBERON:0002387", uri: "http://purl.obolibrary.org/obo/UBERON_0002387"}  # pes
+  rightBackPaw: {id: "UBERON:0002387", uri: "http://purl.obolibrary.org/obo/UBERON_0002387"}  # pes

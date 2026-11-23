@@ -16,12 +16,13 @@ classifiers = [
 
 dependencies = [
   "neuroconv[deeplabcut,video,vame]==0.10.2",
+  "pynwb>=4.2.0",
   "nwbinspector",
   "ipykernel>=7.2.0",
   "nwb-video-widgets>=0.1.7",
   "ndx-fiber-photometry==0.2.3",
   "ndx-optogenetics==0.4.0",
-  "ndx-events==0.2.2",
+  "ndx-hed>=0.3.0",
 ]
 
 [project.optional-dependencies]
@@ -82,9 +83,10 @@ extend-exclude = '''
 '''
 
 [tool.codespell]
-skip = '.git*,*.pdf,*.css'
+skip = '.git*,*.pdf,*.css,*.ipynb'
 check-hidden = true
-ignore-words-list = 'assertin'
+# intenisty is the lab's spelling of a column name in details.csv
+ignore-words-list = 'assertin,intenisty'
 
 [tool.ruff]
 exclude = [

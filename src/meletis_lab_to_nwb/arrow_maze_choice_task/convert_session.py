@@ -10,6 +10,7 @@ from neuroconv.tools.nwb_helpers import make_nwbfile_from_metadata
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskNWBConverter
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.session_metadata import add_session_metadata
 
 
@@ -99,7 +100,7 @@ def session_to_nwb(
     metadata["Subject"].update(
         subject_id=subject_id,
         sex=sex if sex in ("M", "F") else "U",
-        genotype=details_row.get("line", ""),
+        genotype=normalize_genotype(details_row.get("line")),
     )
     if details_row["DoB"] in ("NA", ""):
         # The lab has no date of birth for this mouse; use the age range stated in the paper (2-6 months).
@@ -107,6 +108,7 @@ def session_to_nwb(
     else:
         date_of_birth = datetime.datetime.strptime(details_row["DoB"], "%d-%b-%y").replace(tzinfo=t_zone)
         metadata["Subject"]["date_of_birth"] = date_of_birth
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"

@@ -1,0 +1,35 @@
+# Meanings of the values of categorical columns, with HED (Hierarchical Event Descriptors) where a tag fits.
+# Written into the files by meletis_lab_to_nwb.value_meanings.add_value_meanings.
+# The HED strings were drafted from the meanings and validated against HED 8.4.0 with hedtools, each string on
+# its own and each row of the table assembled. They were not reviewed by a HED expert.
+hed_schema_version: "8.4.0"
+tables:
+  reaching_events:
+    # The meaning of each event type is written by ReachingBehaviorInterface into the label_meanings table,
+    # from the EventTypes descriptions in behavior_metadata.yaml. Only the HED is added here.
+    label:
+      correct:
+        hed: Agent-action, Reach, (Touch, Target), Correct-action, Reward
+      miss:
+        hed: Agent-action, Reach, Miss
+      empty:
+        hed: Agent-action, Reach, Label/Empty-spout
+      drop:
+        hed: Agent-action, Reach, Grasp, Drop
+      semidrop:
+        hed: Agent-action, Reach, Grasp, Drop, Label/Partial-drop
+      unknown:
+        hed: Agent-action, Reach
+    paw:
+      left:
+        meaning: The left forepaw contacted (or attempted to contact) the spout.
+        hed: (Left, Hand)
+      right:
+        meaning: The right forepaw contacted (or attempted to contact) the spout.
+        hed: (Right, Hand)
+      mouth:
+        meaning: The mouth contacted (or attempted to contact) the spout.
+        hed: Mouth
+      unknown:
+        meaning: The body part was not annotated in the source CSV, or its code was not recognized.
+        hed: (Body-part, Unknown)
