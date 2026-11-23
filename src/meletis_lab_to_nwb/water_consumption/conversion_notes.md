@@ -71,3 +71,46 @@ Following the `opto_dlight` pattern:
 ## Files produced per conversion
 
 Per session: `nwb_output/water_consumption/sub-<mouse.ID>/sub-<mouse.ID>_ses-<session_id>.nwb`.
+
+## Ontology Annotation (HERD)
+
+`external_resources.yaml` links values in the files to external terms. The converter writes them as HERD
+references (`nwbfile.external_resources`) with `meletis_lab_to_nwb/external_resources.py`. Every id was
+checked in its registry.
+
+- Species `Mus musculus`: NCBITaxon:10090.
+- Institution `Karolinska Institutet`: ROR:056d84691.
+- Experimenters: Mantas, Ioannis (ORCID 0000-0001-6288-5439), Contestabile, Alessandro
+  (ORCID 0000-0001-6528-1403), Skara, Vasiliki (ORCID 0000-0002-0017-6116). The ORCIDs are in the
+  Crossref author lists of two Meletis lab papers (10.1126/sciadv.adx9450, 10.1101/2025.09.09.675138).
+- Strain: wild-type subjects (genotype `WT`) are written with strain `C57BL/6NCrl` and linked to
+  RRID:IMSR_CRL:027, because the paper's Methods say the C57BL/6N mice came from Charles River. Transgenic
+  subjects keep strain `C57BL/6N` without a term. DAT-Cre is probably RRID:IMSR_JAX:006660, but the paper
+  does not name the source, so it waits for the lab to confirm. Anxa1-Flp (a new line made for the paper)
+  and the Tfam loxP (MitoPark) line have no RRID.
+- Fiber photometry `location`: `Dorsal caudoputamen`, `Central caudoputamen` and `Caudoputamen` are linked
+  to MBA:672 (Caudoputamen). The Allen atlas has no dorsal or central subdivision of the caudoputamen, so
+  the two fiber sites get the structure that contains them.
+
+## Value Meanings and HED
+
+`value_meanings.yaml` describes the two categorical columns of `reaching_events` (written with
+`meletis_lab_to_nwb/value_meanings.py` as MeaningsTables). The meanings follow the descriptions in
+`behavior_metadata.yaml`.
+
+| `label` | HED |
+|---|---|
+| correct | `Agent-action, Reach, (Touch, Target), Correct-action, Reward` |
+| miss | `Agent-action, Reach, Miss` |
+| empty | `Agent-action, Reach, Label/Empty-spout` |
+| drop | `Agent-action, Reach, Grasp, Drop` |
+| semidrop | `Agent-action, Reach, Grasp, Drop, Label/Partial-drop` |
+| unknown | `Agent-action, Reach` |
+
+The `paw` values (`left`, `right`, `mouth`, `unknown`) have meanings and no HED: `paw` is a ragged column,
+and ndx-hed 0.3.0 reads the index of a ragged column in place of its values. The HED was drafted from the
+meanings and validated against HED 8.4.0 with hedtools. It was not reviewed by a HED expert.
+
+The Python class of ndx-events 0.2.2 (`AnnotatedEventsTable`) does not accept `meanings_tables`. A reader
+that imports `ndx_events` reads the table without its MeaningsTables. The tables are in the file, and PyNWB
+without that import (classes generated from the cached schema), MatNWB and h5py see them.

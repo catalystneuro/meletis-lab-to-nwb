@@ -9,7 +9,7 @@ import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
-from meletis_lab_to_nwb.genotype import normalize_genotype
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.open_field_test import OpenFieldTestNWBConverter
 
 # Per-group overrides for fiber photometry metadata in the oft_fp sub-experiment.
@@ -219,6 +219,7 @@ def session_to_nwb(
         genotype=line,
         date_of_birth=date_of_birth,
     )
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # --- Per-group fiber photometry overrides (only for oft_fp sessions with FP data) ---
     if signal_file_path is not None:

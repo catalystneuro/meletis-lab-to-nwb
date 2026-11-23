@@ -108,3 +108,26 @@ oft/
 - Only kinematics columns extracted from aligned CSV (pose/motifs/signal handled by dedicated interfaces)
 - Dots in column names (e.g., `angular.speed`) converted to underscores for NWB
 - Sex extracted from aligned CSV when available, otherwise "U"
+
+## Ontology Annotation (HERD)
+
+`external_resources.yaml` links values in the files to external terms. The converter writes them as HERD
+references (`nwbfile.external_resources`) with `meletis_lab_to_nwb/external_resources.py`. Every id was
+checked in its registry.
+
+- Species `Mus musculus`: NCBITaxon:10090.
+- Institution `Karolinska Institutet`: ROR:056d84691.
+- Experimenters: Mantas, Ioannis (ORCID 0000-0001-6288-5439), Contestabile, Alessandro
+  (ORCID 0000-0001-6528-1403), Skara, Vasiliki (ORCID 0000-0002-0017-6116). The ORCIDs are in the
+  Crossref author lists of two Meletis lab papers (10.1126/sciadv.adx9450, 10.1101/2025.09.09.675138).
+- Strain: wild-type subjects (genotype `WT`) are written with strain `C57BL/6NCrl` and linked to
+  RRID:IMSR_CRL:027, because the paper's Methods say the C57BL/6N mice came from Charles River. Transgenic
+  subjects keep strain `C57BL/6N` without a term. DAT-Cre is probably RRID:IMSR_JAX:006660, but the paper
+  does not name the source, so it waits for the lab to confirm. Anxa1-Flp (a new line made for the paper)
+  and the Tfam loxP (MitoPark) line have no RRID.
+- Fiber photometry `location`: `Dorsal caudoputamen`, `Central caudoputamen` and `Caudoputamen` are linked
+  to MBA:672 (Caudoputamen). The Allen atlas has no dorsal or central subdivision of the caudoputamen, so
+  the two fiber sites get the structure that contains them.
+- Pose-estimation keypoints (UBERON): snout 0006333, leftFrontPaw and rightFrontPaw 0002398 (manus),
+  leftBackPaw and rightBackPaw 0002387 (pes). `tailBase` has no UBERON term and is not linked.
+- VAME motif labels are cluster numbers from unsupervised clustering, so they have no meanings or HED.

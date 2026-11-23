@@ -8,7 +8,7 @@ import numpy as np
 from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timestamps
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
-from meletis_lab_to_nwb.genotype import normalize_genotype
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 from meletis_lab_to_nwb.reaching_test import ReachingTestNWBConverter
 
 # Per-group description of the experimental manipulation. Used to enrich the session
@@ -176,6 +176,7 @@ def session_to_nwb(
     if date_of_birth is not None:
         subject_updates["date_of_birth"] = date_of_birth
     metadata["Subject"].update(subject_updates)
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_yaml_path = Path(__file__).parent / "behavior_metadata.yaml"

@@ -9,7 +9,7 @@ from neuroconv.datainterfaces.behavior.video.video_utils import get_video_timest
 from neuroconv.utils import dict_deep_update, load_dict_from_file
 
 from meletis_lab_to_nwb.arrow_maze_choice_task import ArrowMazeChoiceTaskNWBConverter
-from meletis_lab_to_nwb.genotype import normalize_genotype
+from meletis_lab_to_nwb.genotype import get_strain, normalize_genotype
 
 
 def session_to_nwb(
@@ -99,6 +99,7 @@ def session_to_nwb(
         genotype=normalize_genotype(details_row.get("line")),
         date_of_birth=date_of_birth,
     )
+    metadata["Subject"]["strain"] = get_strain(metadata["Subject"]["genotype"], metadata["Subject"].get("strain"))
 
     # Update camera device from behavior_metadata.yaml
     behavior_metadata_path = Path(__file__).parent / "behavior_metadata.yaml"

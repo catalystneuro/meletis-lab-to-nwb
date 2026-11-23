@@ -143,3 +143,26 @@ def check_genotype_consistency(*, data_dir_path: str | Path) -> None:
         + "\n".join(lines)
         + "\nAsk the lab which genotype is right and correct the details.csv files before converting."
     )
+
+
+# The wild-type mice were C57BL/6N mice from Charles River (Methods of doi:10.1101/2024.12.22.629963),
+# so their strain is written with the vendor's code. The transgenic lines keep the strain in metadata.yaml.
+WILD_TYPE_STRAIN = "C57BL/6NCrl"
+
+
+def get_strain(genotype: str, default_strain: str | None) -> str | None:
+    """Return the strain to write for a subject with this genotype.
+
+    Parameters
+    ----------
+    genotype : str
+        The genotype from :func:`normalize_genotype`.
+    default_strain : str or None
+        The strain in the metadata of the sub-conversion (``C57BL/6N``).
+
+    Returns
+    -------
+    str or None
+        ``WILD_TYPE_STRAIN`` for a wild-type subject (genotype ``WT``), otherwise ``default_strain``.
+    """
+    return WILD_TYPE_STRAIN if genotype == "WT" else default_strain

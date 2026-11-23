@@ -22,6 +22,7 @@ dependencies = [
   "nwb-video-widgets>=0.1.7",
   "ndx-fiber-photometry==0.2.3",
   "ndx-optogenetics==0.4.0",
+  "ndx-hed>=0.3.0",
 ]
 
 [project.urls]
