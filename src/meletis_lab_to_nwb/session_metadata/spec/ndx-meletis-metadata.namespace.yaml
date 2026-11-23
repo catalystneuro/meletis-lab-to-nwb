@@ -1,0 +1,13 @@
+namespaces:
+- name: ndx-meletis-metadata
+  doc: Session-level experimental condition labels for the Meletis lab conversions.
+  author:
+  - CatalystNeuro
+  contact:
+  - hello@catalystneuro.com
+  schema:
+  - namespace: core
+    neurodata_types:
+    - LabMetaData
+  - source: ndx-meletis-metadata.extensions.yaml
+  version: 0.1.0

@@ -1,7 +1,16 @@
 # Notes concerning the reaching-test conversion
 
 ## Data Location
-`.../Meletis/reaching_test/`
+`.../Meletis/reaching_test/` (89 sessions) and `.../Meletis/NEW_reaching_test/` (28 sessions recorded in
+2025, experiment `reaching_test_6ohda_ts`, groups `TS_6OHDA` and `TS_AA`).
+
+The 2025 sessions have no DeepLabCut output (`has_dlc` FALSE), so their files hold the video and,
+where present, the reach annotations. Their recording names end in the mouse ID
+(`reaching_test_2025-06-01T13_33_03_914945`) and their `details.csv` names the date of birth column
+`DoB.x`. `convert_all_sessions.py` runs over both folders.
+
+`group`, `experiment`, `phase` and `light` are also stored in `lab_meta_data["session_metadata"]`
+(`group`, `cohort`, `day`, `light_condition`).
 
 ## Experiment summary
 

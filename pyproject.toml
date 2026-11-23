@@ -15,13 +15,19 @@ classifiers = [
 ]
 
 dependencies = [
-  "neuroconv==0.9.3",
+  "neuroconv[deeplabcut,video,vame]==0.10.2",
   "nwbinspector",
-  "ndx-vame",
   "ipykernel>=7.2.0",
   "nwb-video-widgets>=0.1.7",
   "ndx-fiber-photometry==0.2.3",
   "ndx-optogenetics==0.4.0",
+  "ndx-events==0.2.2",
+]
+
+[project.optional-dependencies]
+dandi = [
+  "dandi",
+  "remfile",
 ]
 
 [project.urls]

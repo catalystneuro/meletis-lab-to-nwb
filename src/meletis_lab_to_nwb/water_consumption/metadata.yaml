@@ -18,12 +18,13 @@ NWBFile:
     long and run on 4 consecutive days. Behavior is recorded laterally at 60 fps (FLIR camera,
     1440 × 1080 px); fiber
     photometry records either striatal dopamine release via dLight1.3b (dLight_dStr,
-    dLight_vStr groups) or SN DAN cell-body calcium activity via GCaMP (fp_dat: DAT-Cre
-    pan-DA labeling; fp_anxa1: Anxa1-Flp Anxa1+ DAN subpopulation).
+    dLight_vStr groups) or axonal calcium activity of SN dopamine neurons in the dorsal
+    caudoputamen via jGCaMP8m (fp_dat: DAT-Cre pan-DA labeling; fp_anxa1: Anxa1-Flp Anxa1+
+    DAN subpopulation).
   session_description: |
     Forelimb reaching-for-water session with simultaneous fiber photometry recording.
-    The per-session recording target (striatum vs SN) and indicator identity (dLight vs
-    GCaMP) are encoded in the `group` and `line` columns of details.csv.
+    The session ID is the lab's original recording name (`reaching_test_<date>`); its
+    prefix does not indicate the task.
   institution: Karolinska Institutet
   lab: Meletis
   experimenter:
